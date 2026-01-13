@@ -2,6 +2,26 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  typescript: {
+    tsConfig: {
+      compilerOptions: {
+        experimentalDecorators: true,
+        emitDecoratorMetadata: true,
+        strictPropertyInitialization: false
+      }
+    }
+  },
+  nitro: {
+    esbuild: {
+      options: {
+        tsconfigRaw: {
+          compilerOptions: {
+            experimentalDecorators: true
+          }
+        }
+      }
+    }
+  },
   runtimeConfig: {
     ftp: {
       host: process.env.FTP_HOST || '192.168.1.166',
