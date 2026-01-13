@@ -1,11 +1,12 @@
 <template>
   <div class="home-page">
+    <TechParticles />
     <div class="hero-section">
       <div class="hero-content">
         <h1 class="hero-title">
-          <span class="title-gradient">智能文件</span>
+          <span class="title-gradient">汉王数字</span>
           <br/>
-          <span class="title-highlight">传输平台</span>
+          <span class="title-highlight">文件上传系统</span>
         </h1>
         <p class="hero-subtitle">
           安全 · 高效 · 智能 · 可靠
@@ -86,6 +87,6 @@ const learnMore = () => {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 @import '~/assets/styles/home.scss';
 </style>

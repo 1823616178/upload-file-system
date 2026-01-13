@@ -1,24 +1,27 @@
-# Nuxt dev/build outputs
-.output
-.data
+# Nuxt
 .nuxt
-.nitro
-.cache
+.output
 dist
 
-# Node dependencies
+# Node
 node_modules
-
-# Logs
-logs
 *.log
 
-# Misc
-.DS_Store
-.fleet
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
 .idea
 
-# Local env files
-.env
-.env.*
-!.env.example
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+prisma/migrations
+
+# Upload History (JSON - old)
+upload-history.json

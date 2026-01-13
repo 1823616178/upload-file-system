@@ -4,7 +4,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   
   // 示例：添加全局属性
   nuxtApp.provide('globalConfig', {
-    appName: '文件传输中心',
+    appName: '汉王数字文件上传系统',
     version: '1.0.0'
   })
 })

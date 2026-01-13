@@ -1,0 +1,26 @@
+// Prisma Schema for Upload History
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model UploadHistory {
+  id          BigInt   @id @default(autoincrement())
+  fileName    String   @map("file_name") @db.VarChar(255)
+  fileSize    BigInt   @map("file_size")
+  fileType    String?  @map("file_type") @db.VarChar(50)
+  remotePath  String   @map("remote_path") @db.VarChar(500)
+  uploadTime  DateTime @map("upload_time") @default(now())
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([uploadTime(sort: Desc)], map: "idx_upload_time")
+  @@index([fileName], map: "idx_file_name")
+  @@index([remotePath], map: "idx_remote_path")
+  @@map("upload_history")
+}

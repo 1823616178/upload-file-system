@@ -1,10 +1,7 @@
 import { Client } from 'basic-ftp'
 import { Readable } from 'stream'
-import fs from 'fs'
 import path from 'path'
-
-// 历史记录存储文件路径
-const HISTORY_FILE = path.join(process.cwd(), 'upload-history.json')
+import prisma from '~/server/utils/db.js'
 
 // 允许的图片格式
 const ALLOWED_IMAGE_TYPES = [
@@ -23,37 +20,36 @@ const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.
 // 最大文件大小 100MB (100 * 1024 * 1024 bytes)
 const MAX_FILE_SIZE = 100 * 1024 * 1024
 
-// 读取历史记录
-const readHistory = () => {
-  try {
-    if (fs.existsSync(HISTORY_FILE)) {
-      const data = fs.readFileSync(HISTORY_FILE, 'utf-8')
-      return JSON.parse(data)
-    }
-    return []
-  } catch (error) {
-    console.error('读取历史记录失败:', error)
-    return []
-  }
-}
-
-// 保存历史记录
-const saveHistory = (record) => {
-  try {
-    const history = readHistory()
-    history.unshift(record) // 添加到开头
-    fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2))
-  } catch (error) {
-    console.error('保存历史记录失败:', error)
-  }
-}
-
 // 验证文件类型
 const validateFileType = (filename, type) => {
   const ext = path.extname(filename).toLowerCase()
   const isValidExtension = ALLOWED_EXTENSIONS.includes(ext)
   const isValidMimeType = ALLOWED_IMAGE_TYPES.includes(type?.toLowerCase())
   return isValidExtension || isValidMimeType
+}
+
+// 格式化文件大小
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+}
+
+// 根据文件名获取 MIME 类型
+const getMimeType = (filename) => {
+  const ext = path.extname(filename).toLowerCase()
+  const mimeTypes = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+    '.svg': 'image/svg+xml'
+  }
+  return mimeTypes[ext] || 'application/octet-stream'
 }
 
 export default defineEventHandler(async (event) => {
@@ -111,17 +107,18 @@ export default defineEventHandler(async (event) => {
 
       console.log(`文件上传成功: ${remoteFilePath}`)
 
-      // 保存到历史记录
-      const historyRecord = {
-        id: Date.now(),
-        fileName: fileName,
-        fileSize: fileSize,
-        fileSizeFormatted: formatFileSize(fileSize),
-        remotePath: remoteFilePath,
-        uploadTime: new Date().toISOString(),
-        fileType: file.type || getMimeType(fileName)
-      }
-      saveHistory(historyRecord)
+      // 保存到数据库 - 使用 Prisma
+      const record = await prisma.uploadHistory.create({
+        data: {
+          fileName: fileName,
+          fileSize: BigInt(fileSize),
+          fileType: file.type || getMimeType(fileName),
+          remotePath: remoteFilePath,
+          uploadTime: new Date()
+        }
+      })
+
+      console.log(`历史记录保存成功，ID: ${record.id}`)
 
       return {
         success: true,
@@ -130,7 +127,8 @@ export default defineEventHandler(async (event) => {
         remotePath: remoteFilePath,
         fileSize: fileSize,
         fileSizeFormatted: formatFileSize(fileSize),
-        recordId: historyRecord.id
+        recordId: record.id.toString(),
+        uploadTime: record.uploadTime.toISOString()
       }
     } catch (ftpError) {
       console.error('FTP上传失败:', ftpError)
@@ -146,27 +144,3 @@ export default defineEventHandler(async (event) => {
     }
   }
 })
-
-// 格式化文件大小
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
-}
-
-// 根据文件名获取 MIME 类型
-const getMimeType = (filename) => {
-  const ext = path.extname(filename).toLowerCase()
-  const mimeTypes = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.gif': 'image/gif',
-    '.webp': 'image/webp',
-    '.bmp': 'image/bmp',
-    '.svg': 'image/svg+xml'
-  }
-  return mimeTypes[ext] || 'application/octet-stream'
-}

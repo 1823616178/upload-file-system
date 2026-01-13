@@ -2,8 +2,8 @@
   <div class="upload-page">
     <div class="upload-container">
       <div class="header">
-        <h1 class="title">文件上传中心</h1>
-        <p class="subtitle">安全传输 · 高效管理 · 智能存储</p>
+        <h1 class="title">汉王数字文件上传系统</h1>
+        <p class="subtitle">安全传输 · 高效管理 · 智能存储 · 仅支持图片格式 · 最大100MB</p>
       </div>
 
       <div
@@ -18,6 +18,7 @@
           ref="fileInput"
           type="file"
           multiple
+          accept="image/*"
           @change="handleFileSelect"
           class="file-input"
         />
@@ -38,7 +39,7 @@
 
         <div class="upload-text" v-if="!isUploading">
           <p class="primary-text">拖拽文件到此处或点击上传</p>
-          <p class="secondary-text">支持多文件上传</p>
+          <p class="secondary-text">支持多文件上传 · 图片格式 · 最大100MB</p>
         </div>
 
         <div class="uploading-text" v-else>
@@ -48,7 +49,10 @@
       </div>
 
       <div class="file-list" v-if="uploadedFiles.length > 0">
-        <h3 class="file-list-title">已上传文件</h3>
+        <div class="file-list-header">
+          <h3 class="file-list-title">已上传文件</h3>
+          <NuxtLink to="/history" class="view-history-btn">查看历史记录</NuxtLink>
+        </div>
         <div class="file-items">
           <div
             v-for="(file, index) in uploadedFiles"
@@ -62,12 +66,26 @@
               </svg>
             </div>
             <div class="file-info">
-              <p class="file-name">{{ file.name }}</p>
+              <p class="file-name" :title="file.name">{{ file.name }}</p>
               <p class="file-size">{{ formatFileSize(file.size) }}</p>
+              <p class="file-path" v-if="file.remotePath" :title="getPreviewUrl(file.remotePath)">
+                {{ getPreviewUrl(file.remotePath) }}
+              </p>
             </div>
             <div class="file-status" :class="file.status">
               {{ getStatusText(file.status) }}
             </div>
+            <button
+              v-if="file.status === 'success' && file.remotePath"
+              @click="copyPath(file.remotePath)"
+              class="copy-path-btn"
+              title="复制链接"
+            >
+              <svg viewBox="0 0 24 24">
+                <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                <path d="M5 15H4C2.9 15 2 14.1 2 13V4C2 2.9 2.9 2 4 2H13C14.1 2 15 2.9 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -81,6 +99,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { toast } from '~/utils/toast'
 
 const fileInput = ref(null)
 const isDragOver = ref(false)
@@ -127,6 +146,32 @@ const uploadFiles = async (files) => {
 
   for (let i = 0; i < fileArray.length; i++) {
     const file = fileArray[i]
+
+    // 客户端验证文件类型
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml']
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']
+    const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+
+    if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
+      uploadedFiles.value.push({
+        name: file.name,
+        size: file.size,
+        status: 'error'
+      })
+      continue
+    }
+
+    // 客户端验证文件大小
+    const maxSize = 100 * 1024 * 1024 // 100MB
+    if (file.size > maxSize) {
+      uploadedFiles.value.push({
+        name: file.name,
+        size: file.size,
+        status: 'error'
+      })
+      continue
+    }
+
     const fileInfo = {
       name: file.name,
       size: file.size,
@@ -146,6 +191,7 @@ const uploadFiles = async (files) => {
 
       if (response.success) {
         fileInfo.status = 'success'
+        fileInfo.remotePath = response.remotePath
       } else {
         fileInfo.status = 'error'
         throw new Error(response.error || '上传失败')
@@ -195,8 +241,25 @@ const getStatusText = (status) => {
   }
   return statusMap[status] || status
 }
+
+// 获取预览 URL
+const getPreviewUrl = (path) => {
+  if (!path) return ''
+  return `${window.location.origin}/api/ftp-image?path=${encodeURIComponent(path)}`
+}
+
+const copyPath = async (path) => {
+  try {
+    const url = getPreviewUrl(path)
+    await navigator.clipboard.writeText(url)
+    toast.success('链接已复制到剪贴板')
+  } catch (error) {
+    console.error('复制失败:', error)
+    toast.error('复制失败，请手动复制')
+  }
+}
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 @import '~/assets/styles/upload.scss';
 </style>

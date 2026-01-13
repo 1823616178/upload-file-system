@@ -1,5 +1,5 @@
 {
-  "name": "uploadFileToServer",
+  "name": "hanvon-upload-file-server",
   "type": "module",
   "private": true,
   "scripts": {
@@ -7,16 +7,25 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "prisma": {
+    "seed": "prisma/seed.js"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.1",
     "basic-ftp": "^5.1.0",
+    "mysql2": "^3.11.0",
     "nuxt": "^4.2.2",
     "vue": "^3.5.26",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@types/node": "^25.0.7",
-    "sass": "^1.81.0"
+    "prisma": "^6.19.1",
+    "sass": "^1.32.13"
   }
 }

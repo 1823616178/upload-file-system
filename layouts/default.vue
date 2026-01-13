@@ -12,23 +12,16 @@
     <!-- 导航栏 -->
     <nav class="navbar">
       <div class="nav-content">
-        <div class="logo">
-          <svg viewBox="0 0 48 48" class="logo-icon">
-            <defs>
-              <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#00d4ff"/>
-                <stop offset="100%" style="stop-color:#0099ff"/>
-              </linearGradient>
-            </defs>
-            <path d="M24 4 L44 14 V34 L24 44 L4 34 V14 Z" stroke="url(#logoGrad)" stroke-width="2" fill="none"/>
-            <circle cx="24" cy="24" r="8" stroke="url(#logoGrad)" stroke-width="2" fill="none"/>
-            <circle cx="24" cy="24" r="3" fill="url(#logoGrad)"/>
-          </svg>
-          <span class="logo-text">文件传输中心</span>
-        </div>
+        <LogoParticles>
+          <div class="logo">
+            <img src="/logo-black.png" alt="Logo" class="logo-img" />
+            <span class="logo-text">汉王数字文件上传系统</span>
+          </div>
+        </LogoParticles>
         <div class="nav-links">
           <NuxtLink to="/" class="nav-link">首页</NuxtLink>
           <NuxtLink to="/uploadFile" class="nav-link">文件上传</NuxtLink>
+          <NuxtLink to="/history" class="nav-link">历史记录</NuxtLink>
         </div>
       </div>
     </nav>
@@ -41,7 +34,7 @@
     <!-- 页脚 -->
     <footer class="footer">
       <div class="footer-content">
-        <p class="footer-text">© 2026 文件传输中心 · 智能科技 · 服务未来</p>
+        <p class="footer-text">© 2026 汉王数字文件上传系统 · 智能科技 · 服务未来</p>
       </div>
     </footer>
   </div>
@@ -54,6 +47,6 @@ definePageMeta({
 })
 </script>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 @import '~/assets/styles/app.scss';
 </style>
