@@ -151,6 +151,24 @@ body {
   align-items: center;
 }
 
+.logo-link {
+  text-decoration: none;
+  display: block;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    .logo-img {
+      filter: drop-shadow(0 0 12px rgba(0, 212, 255, 0.9));
+      transform: scale(1.05);
+    }
+    
+    .logo-text {
+      text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    }
+  }
+}
+
 .logo {
   display: flex;
   align-items: center;
@@ -162,11 +180,7 @@ body {
   height: 32px;
   object-fit: contain;
   filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.6));
-  transition: filter 0.3s ease;
-  
-  &:hover {
-    filter: drop-shadow(0 0 12px rgba(0, 212, 255, 0.9));
-  }
+  transition: all 0.3s ease;
 }
 
 .logo-text {
@@ -177,6 +191,7 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  transition: all 0.3s ease;
 }
 
 .nav-links {

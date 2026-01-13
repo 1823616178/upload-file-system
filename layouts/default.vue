@@ -13,10 +13,12 @@
     <nav class="navbar">
       <div class="nav-content">
         <LogoParticles>
-          <div class="logo">
-            <img src="/logo-black.png" alt="Logo" class="logo-img" />
-            <span class="logo-text">汉王数字文件上传系统</span>
-          </div>
+          <NuxtLink to="/" class="logo-link">
+            <div class="logo">
+              <img src="/logo-black.png" alt="Logo" class="logo-img" />
+              <span class="logo-text">汉王数字文件上传系统</span>
+            </div>
+          </NuxtLink>
         </LogoParticles>
         <div class="nav-links">
           <NuxtLink to="/" class="nav-link">首页</NuxtLink>
