@@ -682,8 +682,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 400px;
-    max-height: 70vh;
+    height: 400px;
     overflow: auto;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 8px;
