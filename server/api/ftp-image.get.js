@@ -1,4 +1,3 @@
-import { Client } from 'basic-ftp'
 import { Writable } from 'stream'
 
 export default defineEventHandler(async (event) => {
@@ -12,17 +11,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const client = new Client()
+  const client = await createFtpClient()
 
   try {
-    await client.access({
-      host: '192.168.1.166',
-      user: 'userftp',
-      password: '550312171',
-      port: 21,
-      secure: false
-    })
-
     // 创建可写流来捕获文件数据
     const chunks = []
     const writable = new Writable({

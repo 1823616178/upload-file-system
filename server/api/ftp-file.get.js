@@ -1,4 +1,3 @@
-import { Client } from 'basic-ftp'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -9,17 +8,9 @@ export default defineEventHandler(async (event) => {
       throw new Error('缺少文件路径参数')
     }
 
-    const client = new Client()
+    const client = await createFtpClient()
 
     try {
-      await client.access({
-        host: '192.168.1.166',
-        user: 'userftp',
-        password: '550312171',
-        port: 21,
-        secure: false
-      })
-
       // 获取父目录路径
       const lastSlashIndex = remotePath.lastIndexOf('/')
       const dirPath = lastSlashIndex !== -1 ? remotePath.substring(0, lastSlashIndex) || '/' : '/'

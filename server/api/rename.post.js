@@ -1,4 +1,3 @@
-import { Client } from 'basic-ftp'
 import prisma from '~/server/utils/db.js'
 
 export default defineEventHandler(async (event) => {
@@ -31,15 +30,8 @@ export default defineEventHandler(async (event) => {
 
     if (source === 'ftp') {
        // FTP 重命名
-       const client = new Client()
+       const client = await createFtpClient()
        try {
-         await client.access({
-            host: '192.168.1.166',
-            user: 'userftp',
-            password: '550312171',
-            port: 21,
-            secure: false
-         })
          
          const dir = remotePath.substring(0, remotePath.lastIndexOf('/'))
          const newRemotePath = `${dir}/${finalNewName}`

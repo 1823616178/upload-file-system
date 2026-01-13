@@ -1,4 +1,3 @@
-import { Client } from 'basic-ftp'
 import prisma from '~/server/utils/db.js'
 
 export default defineEventHandler(async (event) => {
@@ -14,16 +13,8 @@ export default defineEventHandler(async (event) => {
 
       console.log(`正在删除 FTP 文件: ${remotePath}`)
 
-      const client = new Client()
+      const client = await createFtpClient()
       try {
-        await client.access({
-          host: '192.168.1.166',
-          user: 'userftp',
-          password: '550312171',
-          port: 21,
-          secure: false
-        })
-
         // 删除远程文件
         await client.remove(remotePath)
         console.log(`FTP 文件删除成功: ${remotePath}`)

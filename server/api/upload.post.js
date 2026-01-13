@@ -1,4 +1,3 @@
-import { Client } from 'basic-ftp'
 import { Readable } from 'stream'
 import path from 'path'
 import prisma from '~/server/utils/db.js'
@@ -80,24 +79,29 @@ export default defineEventHandler(async (event) => {
       throw new Error('文件格式不支持，仅支持图片格式：jpg, png, gif, webp, bmp, svg')
     }
 
+    // 生成带时间戳的新文件名
+    const ext = path.extname(fileName)
+    const name = path.basename(fileName, ext)
+    const now = new Date()
+    const timestamp = now.getFullYear() +
+      String(now.getMonth() + 1).padStart(2, '0') +
+      String(now.getDate()).padStart(2, '0') + '_' +
+      String(now.getHours()).padStart(2, '0') +
+      String(now.getMinutes()).padStart(2, '0') +
+      String(now.getSeconds()).padStart(2, '0')
+    
+    const finalFileName = `${name}_${timestamp}${ext}`
+
     const remotePathStr = remotePath?.data?.toString() || '/static/wenjinyangyi'
 
-    const client = new Client()
+    const client = await createFtpClient()
 
     try {
-      await client.access({
-        host: '192.168.1.166',
-        user: 'userftp',
-        password: '550312171',
-        port: 21,
-        secure: false
-      })
-
       // 确保远程目录存在
       await client.ensureDir(remotePathStr)
 
       // 上传文件 - 使用 Readable 流
-      const remoteFilePath = `${remotePathStr}/${fileName}`
+      const remoteFilePath = `${remotePathStr}/${finalFileName}`
 
       // 将 Buffer 转换为可读流
       const buffer = Buffer.from(file.data)
@@ -114,9 +118,9 @@ export default defineEventHandler(async (event) => {
       // 保存到数据库 - 使用 Prisma
       const record = await prisma.uploadHistory.create({
         data: {
-          fileName: fileName,
+          fileName: finalFileName,
           fileSize: BigInt(fileSize),
-          fileType: file.type || getMimeType(fileName),
+          fileType: file.type || getMimeType(finalFileName),
           remotePath: remoteFilePath,
           uploadTime: new Date(),
           ipAddress: ipAddress,
@@ -129,7 +133,7 @@ export default defineEventHandler(async (event) => {
       return {
         success: true,
         message: '文件上传成功',
-        fileName: fileName,
+        fileName: finalFileName,
         remotePath: remoteFilePath,
         fileSize: fileSize,
         fileSizeFormatted: formatFileSize(fileSize),

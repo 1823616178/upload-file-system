@@ -2,6 +2,15 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  runtimeConfig: {
+    ftp: {
+      host: process.env.FTP_HOST || '192.168.1.166',
+      user: process.env.FTP_USER || 'userftp',
+      password: process.env.FTP_PASSWORD || '550312171',
+      port: parseInt(process.env.FTP_PORT || '21'),
+      secure: process.env.FTP_SECURE === 'true'
+    }
+  },
   app: {
     head: {
       title: '汉王数字文件上传系统',

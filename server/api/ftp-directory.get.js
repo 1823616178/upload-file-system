@@ -1,21 +1,12 @@
-import { Client } from 'basic-ftp'
 
 export default defineEventHandler(async (event) => {
   try {
     const query = getQuery(event)
     const remotePath = query.path || '/static/wenjinyangyi'
 
-    const client = new Client()
+    const client = await createFtpClient()
 
     try {
-      await client.access({
-        host: '192.168.1.166',
-        user: 'userftp',
-        password: '550312171',
-        port: 21,
-        secure: false
-      })
-
       // 获取目录列表
       const fileList = await client.list(remotePath)
 

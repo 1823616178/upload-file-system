@@ -1,4 +1,3 @@
-import { Client } from 'basic-ftp'
 import prisma from '~/server/utils/db.js'
 
 export default defineEventHandler(async (event) => {
@@ -10,18 +9,10 @@ export default defineEventHandler(async (event) => {
     const search = queryStr.search || ''
 
     // 连接 FTP 服务器获取文件信息
-    const client = new Client()
+    const client = await createFtpClient()
     const ftpFiles = []
 
     try {
-      await client.access({
-        host: '192.168.1.166',
-        user: 'userftp',
-        password: '550312171',
-        port: 21,
-        secure: false
-      })
-
       // 列出目录中的文件
       const fileList = await client.list('/static/wenjinyangyi')
 
