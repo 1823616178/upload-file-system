@@ -8,24 +8,22 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push",
-    "prisma:migrate": "prisma migrate dev"
-  },
-  "prisma": {
-    "seed": "prisma/seed.js"
+    "typeorm:migration:generate": "typeorm migration:generate -d server/data-source.ts",
+    "typeorm:migration:run": "typeorm migration:run -d server/data-source.ts",
+    "typeorm:seed": "tsx --tsconfig tsconfig.seed.json server/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.1",
     "basic-ftp": "^5.1.0",
     "mysql2": "^3.11.0",
     "nuxt": "^4.2.2",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.28",
     "vue": "^3.5.26",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@types/node": "^25.0.7",
-    "prisma": "^6.19.1",
-    "sass": "^1.97.2"
+    "sass": "^1.97.2",
+    "tsx": "^4.21.0"
   }
 }

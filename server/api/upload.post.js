@@ -1,6 +1,6 @@
 import { Readable } from 'stream'
 import path from 'path'
-import prisma from '~/server/utils/db.js'
+import { getUploadHistoryRepository } from '~/server/utils/db.js'
 
 // 允许的图片格式
 const ALLOWED_IMAGE_TYPES = [
@@ -115,17 +115,16 @@ export default defineEventHandler(async (event) => {
       const ipAddress = getRequestIP(event, { xForwardedFor: true }) || '0.0.0.0'
       const userAgent = getRequestHeader(event, 'user-agent') || 'Unknown'
 
-      // 保存到数据库 - 使用 Prisma
-      const record = await prisma.uploadHistory.create({
-        data: {
-          fileName: finalFileName,
-          fileSize: BigInt(fileSize),
-          fileType: file.type || getMimeType(finalFileName),
-          remotePath: remoteFilePath,
-          uploadTime: new Date(),
-          ipAddress: ipAddress,
-          userAgent: userAgent
-        }
+      // 保存到数据库 - 使用 TypeORM
+      const uploadHistoryRepository = await getUploadHistoryRepository()
+      const record = await uploadHistoryRepository.save({
+        fileName: finalFileName,
+        fileSize: fileSize.toString(),
+        fileType: file.type || getMimeType(finalFileName),
+        remotePath: remoteFilePath,
+        uploadTime: new Date(),
+        ipAddress: ipAddress,
+        userAgent: userAgent
       })
 
       console.log(`历史记录保存成功，ID: ${record.id}`)

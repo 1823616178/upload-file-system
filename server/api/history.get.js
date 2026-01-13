@@ -1,4 +1,5 @@
-import prisma from '~/server/utils/db.js'
+import { getUploadHistoryRepository } from '~/server/utils/db.js'
+import { Like } from 'typeorm'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -58,24 +59,24 @@ export default defineEventHandler(async (event) => {
       // 回退到数据库
       console.log('使用数据库历史记录')
 
-      // 构建 Prisma 查询条件
+      const uploadHistoryRepository = await getUploadHistoryRepository()
+
+      // 构建 TypeORM 查询条件
       const where = {}
 
       // 搜索过滤
       if (search) {
-        where.fileName = {
-          contains: search
-        }
+        where.fileName = Like(`%${search}%`)
       }
 
       // 获取总数
-      total = await prisma.uploadHistory.count({ where })
+      total = await uploadHistoryRepository.count({ where })
 
       // 分页查询
-      const data = await prisma.uploadHistory.findMany({
+      const data = await uploadHistoryRepository.find({
         where,
-        orderBy: {
-          uploadTime: 'desc'
+        order: {
+          uploadTime: 'DESC'
         },
         skip: (page - 1) * pageSize,
         take: pageSize

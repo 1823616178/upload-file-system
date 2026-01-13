@@ -1,4 +1,4 @@
-import prisma from '~/server/utils/db.js'
+import { getUploadHistoryRepository } from '~/server/utils/db.js'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -21,10 +21,9 @@ export default defineEventHandler(async (event) => {
 
         // 同时尝试清理数据库中对应的记录（如果存在）
         try {
-          await prisma.uploadHistory.deleteMany({
-            where: {
-              remotePath: remotePath
-            }
+          const uploadHistoryRepository = await getUploadHistoryRepository()
+          await uploadHistoryRepository.delete({
+            remotePath: remotePath
           })
           console.log('关联的数据库记录已清理')
         } catch (dbError) {
@@ -53,12 +52,10 @@ export default defineEventHandler(async (event) => {
 
     console.log(`删除数据库记录 ID: ${idBigInt}`)
 
+    const uploadHistoryRepository = await getUploadHistoryRepository()
+
     // 从数据库删除记录
-    await prisma.uploadHistory.delete({
-      where: {
-        id: idBigInt
-      }
-    })
+    const deleteResult = await uploadHistoryRepository.delete(idBigInt)
 
     return {
       success: true,
@@ -66,13 +63,7 @@ export default defineEventHandler(async (event) => {
     }
 
   } catch (error) {
-    if (error.code === 'P2025') {
-      return {
-        success: false,
-        error: '找不到该记录'
-      }
-    }
-
+    // TypeORM 不会抛出 P2025 错误，我们检查删除结果
     console.error('删除处理失败:', error)
     return {
       success: false,

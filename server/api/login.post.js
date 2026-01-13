@@ -1,5 +1,5 @@
 import { setCookie } from 'h3';
-import prisma from '~/server/utils/db';
+import { getUserRepository } from '~/server/utils/db';
 import crypto from 'crypto';
 
 function verifyPassword(password, storedHash) {
@@ -22,7 +22,8 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const user = await prisma.user.findUnique({
+    const userRepository = await getUserRepository()
+    const user = await userRepository.findOne({
       where: { username },
     });
 

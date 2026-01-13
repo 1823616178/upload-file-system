@@ -1,4 +1,4 @@
-import prisma from '~/server/utils/db.js'
+import { getUploadHistoryRepository } from '~/server/utils/db.js'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -46,13 +46,14 @@ export default defineEventHandler(async (event) => {
          
          // 更新数据库记录（如果存在）
          try {
-           await prisma.uploadHistory.updateMany({
-             where: { remotePath: remotePath },
-             data: { 
+           const uploadHistoryRepository = await getUploadHistoryRepository()
+           await uploadHistoryRepository.update(
+             { remotePath: remotePath },
+             { 
                fileName: finalNewName,
                remotePath: newRemotePath
              }
-           })
+           )
          } catch (e) {
            console.warn('关联数据库更新失败', e)
          }
@@ -74,17 +75,18 @@ export default defineEventHandler(async (event) => {
       // 建议统一走 FTP 重命名逻辑，然后同步库。
       
       // 但为了严谨，我们先查库里有没有重名的
-      const exist = await prisma.uploadHistory.findFirst({
+      const uploadHistoryRepository = await getUploadHistoryRepository()
+      const exist = await uploadHistoryRepository.findOne({
         where: { fileName: finalNewName }
       })
       if (exist) {
         throw new Error('文件名已存在')
       }
 
-      await prisma.uploadHistory.update({
-        where: { id: BigInt(id) },
-        data: { fileName: finalNewName }
-      })
+      await uploadHistoryRepository.update(
+        { id: idBigInt },
+        { fileName: finalNewName }
+      )
       
       return { success: true, newName: finalNewName }
     }
