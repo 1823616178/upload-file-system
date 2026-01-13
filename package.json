@@ -26,6 +26,6 @@
   "devDependencies": {
     "@types/node": "^25.0.7",
     "prisma": "^6.19.1",
-    "sass": "^1.32.13"
+    "sass": "^1.97.2"
   }
 }
