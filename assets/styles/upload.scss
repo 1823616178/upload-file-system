@@ -1,0 +1,325 @@
+// 颜色变量
+$primary-blue: #00d4ff;
+$secondary-blue: #0099ff;
+$text-white: #ffffff;
+$text-white-light: rgba(255, 255, 255, 0.7);
+$text-white-dim: rgba(255, 255, 255, 0.5);
+$success-green: #00ff88;
+$error-red: #ff4444;
+$warning-orange: #ffa500;
+
+// 上传页面容器
+.upload-page {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 30px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.upload-container {
+  background: rgba(20, 20, 40, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba($primary-blue, 0.2);
+  border-radius: 20px;
+  padding: 40px;
+  width: 100%;
+  max-width: 600px;
+  position: relative;
+  z-index: 10;
+  box-shadow: 
+    0 0 60px rgba($primary-blue, 0.1),
+    0 0 100px rgba($primary-blue, 0.05);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 700;
+  color: $text-white;
+  margin: 0 0 10px 0;
+  background: linear-gradient(90deg, $primary-blue, $secondary-blue);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba($primary-blue, 0.3);
+}
+
+.subtitle {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+.upload-zone {
+  border: 2px dashed rgba($primary-blue, 0.4);
+  border-radius: 16px;
+  padding: 60px 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  background: rgba($primary-blue, 0.02);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      45deg,
+      transparent,
+      transparent 40%,
+      rgba($primary-blue, 0.03) 50%,
+      transparent 60%,
+      transparent
+    );
+    animation: shimmer 3s infinite;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+}
+
+.upload-zone:hover,
+.upload-zone.drag-over {
+  border-color: $primary-blue;
+  background: rgba($primary-blue, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba($primary-blue, 0.2);
+}
+
+.upload-zone.uploading {
+  pointer-events: none;
+}
+
+.file-input {
+  display: none;
+}
+
+.upload-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.upload-text {
+  .primary-text {
+    color: $text-white;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+  }
+
+  .secondary-text {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+    margin: 0;
+  }
+}
+
+.uploading-text {
+  .primary-text {
+    color: $primary-blue;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.uploading-text {
+  .secondary-text {
+    color: $text-white;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+  }
+}
+
+.file-list {
+  margin-top: 30px;
+}
+
+.file-list-title {
+  color: $text-white;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 15px 0;
+}
+
+.file-items {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 10px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba($primary-blue, 0.1);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba($primary-blue, 0.3);
+    border-radius: 3px;
+  }
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  margin-bottom: 10px;
+  background: rgba($primary-blue, 0.05);
+  border: 1px solid rgba($primary-blue, 0.1);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba($primary-blue, 0.1);
+    border-color: rgba($primary-blue, 0.2);
+  }
+}
+
+.file-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  margin-right: 15px;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  color: $text-white;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-size {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  margin: 0;
+}
+
+.file-status {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &.uploading {
+    background: rgba($primary-blue, 0.1);
+    color: $primary-blue;
+  }
+
+  &.success {
+    background: rgba($success-green, 0.1);
+    color: $success-green;
+  }
+
+  &.error {
+    background: rgba($error-red, 0.1);
+    color: $error-red;
+  }
+}
+
+.status-message {
+  margin-top: 20px;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.status-message {
+  &.success {
+    background: rgba($success-green, 0.1);
+    border: 1px solid rgba($success-green, 0.3);
+    color: $success-green;
+  }
+
+  &.warning {
+    background: rgba($warning-orange, 0.1);
+    border: 1px solid rgba($warning-orange, 0.3);
+    color: $warning-orange;
+  }
+
+  &.error {
+    background: rgba($error-red, 0.1);
+    border: 1px solid rgba($error-red, 0.3);
+    color: $error-red;
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .upload-page {
+    padding: 0 20px;
+  }
+
+  .upload-container {
+    padding: 30px 20px;
+  }
+}
