@@ -22,6 +22,7 @@
           <NuxtLink to="/" class="nav-link">首页</NuxtLink>
           <NuxtLink to="/uploadFile" class="nav-link">文件上传</NuxtLink>
           <NuxtLink to="/history" class="nav-link">历史记录</NuxtLink>
+          <a href="#" @click.prevent="logout" class="nav-link">注销</a>
         </div>
       </div>
     </nav>
@@ -41,6 +42,15 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const logout = async () => {
+  await fetch('/api/logout', { method: 'POST' });
+  router.push('/login');
+};
+
 // Nuxt 布局组件，使用 NuxtLink 进行路由导航
 definePageMeta({
   layout: 'default'

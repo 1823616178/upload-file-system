@@ -55,6 +55,12 @@
                   </svg>
                   {{ formatDate(item.uploadTime) }}
                 </span>
+                <span class="meta-item" v-if="item.ipAddress && item.ipAddress !== '-'" :title="locations[item.ipAddress] || '正在解析位置...'">
+                  <svg viewBox="0 0 24 24" class="meta-icon">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
+                  </svg>
+                  {{ item.ipAddress }} <span class="location-text" v-if="locations[item.ipAddress]">({{ locations[item.ipAddress] }})</span>
+                </span>
               </div>
               <div class="item-path" :title="getPreviewUrl(item.remotePath)">
                 {{ getPreviewUrl(item.remotePath) }}
@@ -74,6 +80,12 @@
                 <svg viewBox="0 0 24 24">
                   <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
                   <path d="M5 15H4C2.9 15 2 14.1 2 13V4C2 2.9 2.9 2 4 2H13C14.1 2 15 2.9 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <button @click.stop="openRenameModal(item)" class="action-btn rename-btn" title="重命名">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                 </svg>
               </button>
               <button @click.stop="deleteRecord(item.id, item.source, item.remotePath)" class="action-btn delete-btn" title="删除记录">
@@ -192,6 +204,39 @@
           </div>
         </div>
       </div>
+
+      <!-- 重命名模态框 -->
+      <div class="confirm-modal" v-if="renameModal.show" @click.self="closeRenameModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>重命名文件</h3>
+            <button @click="closeRenameModal" class="close-btn">
+              <svg viewBox="0 0 24 24">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="input-group">
+               <input 
+                 type="text" 
+                 v-model="renameModal.newName" 
+                 class="rename-input" 
+                 placeholder="请输入新文件名"
+                 @keyup.enter="executeRename"
+                 ref="renameInputRef"
+               />
+               <p class="input-hint">不需要包含文件后缀，系统会自动保留</p>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button @click="closeRenameModal" class="btn cancel-btn">取消</button>
+            <button @click="executeRename" class="btn confirm-btn" :disabled="renameModal.loading">
+              {{ renameModal.loading ? '处理中...' : '确认修改' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -206,6 +251,7 @@ const searchQuery = ref('')
 const currentPage = ref(1)
 const totalPages = ref(1)
 const pageSize = 10
+const locations = ref({})
 
 // 预览状态
 const preview = ref({
@@ -228,6 +274,33 @@ const formatDate = (dateString) => {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
+// 解析 IP 地址
+const resolveIpLocations = async (list) => {
+  const ips = [...new Set(list.map(item => item.ipAddress).filter(ip => ip && ip !== '-' && !locations.value[ip]))]
+  
+  for (const ip of ips) {
+    // 简单过滤内网 IP
+    if (ip.startsWith('192.168.') || ip.startsWith('127.') || ip.startsWith('10.')) {
+      locations.value[ip] = '内网IP'
+      continue
+    }
+
+    try {
+      // 使用免费的 ip-api.com (注意：该 API 为 http，https 站点可能受限，但在本地/开发环境通常可用)
+      // 如果是生产环境 https，建议后端代理或使用支持 https 的服务
+      const res = await fetch(`http://ip-api.com/json/${ip}?lang=zh-CN`)
+      const data = await res.json()
+      if (data.status === 'success') {
+        locations.value[ip] = `${data.regionName} ${data.city}`
+      } else {
+        locations.value[ip] = '未知位置'
+      }
+    } catch (e) {
+      console.warn(`无法解析 IP ${ip}`, e)
+    }
+  }
+}
+
 // 加载历史记录
 const loadHistory = async () => {
   loading.value = true
@@ -243,6 +316,8 @@ const loadHistory = async () => {
     if (response.success) {
       historyList.value = response.data
       totalPages.value = response.pagination.totalPages
+      // 异步解析 IP
+      resolveIpLocations(historyList.value)
     }
   } catch (error) {
     console.error('加载历史记录失败:', error)
@@ -405,6 +480,88 @@ const executeDelete = async () => {
     toast.error('删除失败，请重试')
   } finally {
     deleteModal.value.loading = false
+  }
+}
+
+// 重命名状态
+const renameModal = ref({
+  show: false,
+  id: null,
+  source: null,
+  remotePath: null,
+  oldName: '',
+  newName: '',
+  loading: false
+})
+const renameInputRef = ref(null)
+
+// 打开重命名模态框
+const openRenameModal = (item) => {
+  const nameWithoutExt = item.fileName.substring(0, item.fileName.lastIndexOf('.')) || item.fileName
+  renameModal.value = {
+    show: true,
+    id: item.id,
+    source: item.source,
+    remotePath: item.remotePath,
+    oldName: item.fileName,
+    newName: nameWithoutExt,
+    loading: false
+  }
+  // 自动聚焦
+  setTimeout(() => {
+    renameInputRef.value?.focus()
+    renameInputRef.value?.select()
+  }, 100)
+}
+
+// 关闭重命名模态框
+const closeRenameModal = () => {
+  renameModal.value.show = false
+}
+
+// 执行重命名
+const executeRename = async () => {
+  if (!renameModal.value.newName.trim()) {
+    toast.warning('请输入新文件名')
+    return
+  }
+  if (renameModal.value.loading) return
+
+  renameModal.value.loading = true
+  const { id, oldName, newName, source, remotePath } = renameModal.value
+
+  try {
+    const response = await $fetch('/api/rename', {
+      method: 'POST',
+      body: {
+        id,
+        oldName,
+        newName,
+        source,
+        remotePath
+      }
+    })
+
+    if (response.success) {
+      toast.success('重命名成功')
+      closeRenameModal()
+      
+      // 更新列表中的文件名
+      const index = historyList.value.findIndex(item => item.id === id)
+      if (index !== -1) {
+        historyList.value[index].fileName = response.newName
+        if (response.newRemotePath) {
+           historyList.value[index].remotePath = response.newRemotePath
+        }
+      }
+    } else {
+      toast.error(response.error || '重命名失败')
+    }
+  } catch (error) {
+    console.error('重命名失败:', error)
+    toast.error('重命名请求失败')
+  } finally {
+    renameModal.value.loading = false
   }
 }
 
@@ -576,6 +733,12 @@ onMounted(() => {
   }
 }
 
+.location-text {
+  color: #00d4ff;
+  margin-left: 4px;
+  font-size: 0.9em;
+}
+
 // 预览按钮样式
 .preview-btn {
   background: rgba(0, 212, 255, 0.1) !important;
@@ -583,6 +746,64 @@ onMounted(() => {
 
   &:hover {
     background: rgba(0, 212, 255, 0.2) !important;
+  }
+}
+
+.rename-btn {
+  background: rgba(255, 165, 2, 0.1) !important;
+  border-color: rgba(255, 165, 2, 0.3) !important;
+  color: #ffa502 !important;
+
+  &:hover {
+    background: rgba(255, 165, 2, 0.2) !important;
+  }
+}
+
+// 重命名输入框样式
+.input-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.rename-input {
+  width: 100%;
+  box-sizing: border-box; // 显式声明
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  padding: 12px 15px;
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.3s ease;
+  margin: 0;
+
+  &:focus {
+    border-color: #00d4ff;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+  }
+}
+
+.input-hint {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  margin-top: 8px;
+  text-align: left;
+}
+
+.btn.confirm-btn {
+  background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
+  color: #fff;
+  border: none;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
   }
 }
 

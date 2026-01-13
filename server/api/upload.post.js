@@ -107,6 +107,10 @@ export default defineEventHandler(async (event) => {
 
       console.log(`文件上传成功: ${remoteFilePath}`)
 
+      // 获取客户端信息
+      const ipAddress = getRequestIP(event, { xForwardedFor: true }) || '0.0.0.0'
+      const userAgent = getRequestHeader(event, 'user-agent') || 'Unknown'
+
       // 保存到数据库 - 使用 Prisma
       const record = await prisma.uploadHistory.create({
         data: {
@@ -114,7 +118,9 @@ export default defineEventHandler(async (event) => {
           fileSize: BigInt(fileSize),
           fileType: file.type || getMimeType(fileName),
           remotePath: remoteFilePath,
-          uploadTime: new Date()
+          uploadTime: new Date(),
+          ipAddress: ipAddress,
+          userAgent: userAgent
         }
       })
 

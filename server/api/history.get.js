@@ -98,6 +98,8 @@ export default defineEventHandler(async (event) => {
         fileSizeFormatted: formatFileSize(Number(item.fileSize)),
         fileType: item.fileType,
         remotePath: item.remotePath,
+        ipAddress: item.ipAddress || '-',
+        userAgent: item.userAgent || '-',
         uploadTime: item.uploadTime ? new Date(item.uploadTime).toISOString() : new Date().toISOString(),
         source: 'database' // 标记来源为数据库
       }))
