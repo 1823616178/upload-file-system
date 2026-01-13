@@ -20,8 +20,5 @@ node_modules
 .DS_Store
 Thumbs.db
 
-# Prisma
-prisma/migrations
-
 # Upload History (JSON - old)
 upload-history.json
