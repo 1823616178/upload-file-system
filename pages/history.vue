@@ -39,7 +39,7 @@
               </svg>
             </div>
             <div class="item-info">
-              <h4 class="item-name">{{ item.fileName }}</h4>
+              <h4 class="item-name clickable" @click.stop="copyFileName(item.fileName)" title="点击复制文件名">{{ item.fileName }}</h4>
               <div class="item-meta">
                 <span class="meta-item">
                   <svg viewBox="0 0 16 16" class="meta-icon">
@@ -449,6 +449,17 @@ const copyUrl = async (url) => {
   const success = await copyToClipboard(url)
   if (success) {
     toast.success('链接已复制到剪贴板')
+  } else {
+    toast.error('复制失败，请手动复制')
+  }
+}
+
+// 复制文件名
+const copyFileName = async (fileName) => {
+  if (!fileName) return
+  const success = await copyToClipboard(fileName)
+  if (success) {
+    toast.success('文件名已复制到剪贴板')
   } else {
     toast.error('复制失败，请手动复制')
   }

@@ -117,6 +117,21 @@
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          
+          &.clickable {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+            
+            &:hover {
+              color: #00d4ff;
+              text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+            }
+            
+            &:active {
+              transform: scale(0.98);
+            }
+          }
         }
 
         .item-meta {
