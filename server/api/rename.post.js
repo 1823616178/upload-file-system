@@ -1,4 +1,5 @@
 import { getUploadHistoryRepository } from '~/server/utils/db.js'
+import path from 'path'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -15,34 +16,64 @@ export default defineEventHandler(async (event) => {
     }
     
     // 保持原有扩展名
-    const oldExt = oldName.substring(oldName.lastIndexOf('.'))
-    const newExt = newName.substring(newName.lastIndexOf('.'))
+    const oldExt = path.extname(oldName)
     
-    let finalNewName = newName
-    if (oldExt && newExt !== oldExt) {
-       // 如果用户没有输入后缀或者后缀改了，强制加回去（简单处理，实际可根据需求）
-       // 这里假设用户修改的是全名，如果没带后缀，我们补上；如果带了不同后缀，允许修改格式？
-       // 通常重命名不建议改后缀。这里为了简单，如果用户没写后缀，自动补全
-       if (!newName.includes('.')) {
-          finalNewName = newName + oldExt
-       }
-    }
+    // 生成时间戳
+    const now = new Date()
+    const timestamp = now.getFullYear() +
+      String(now.getMonth() + 1).padStart(2, '0') +
+      String(now.getDate()).padStart(2, '0') + '_' +
+      String(now.getHours()).padStart(2, '0') +
+      String(now.getMinutes()).padStart(2, '0') +
+      String(now.getSeconds()).padStart(2, '0')
+    
+    // 新文件名 = 用户输入的名字_时间戳.扩展名
+    let finalNewName = `${newName.trim()}_${timestamp}${oldExt}`
 
-    if (source === 'ftp') {
-       // FTP 重命名
-       const client = await createFtpClient()
-       try {
+    // 统一走 FTP 重命名逻辑（因为所有文件都在 FTP 上）
+    const client = await createFtpClient()
+    try {
+         // 检查新文件名是否已存在，如果存在则添加序号
+         let actualNewName = finalNewName
+         let counter = 1
          
-         const dir = remotePath.substring(0, remotePath.lastIndexOf('/'))
-         const newRemotePath = `${dir}/${finalNewName}`
-         
-         // 检查新文件名是否存在
-         const list = await client.list(dir)
-         if (list.some(f => f.name === finalNewName)) {
-           throw new Error('文件名已存在')
+         try {
+           const fileList = await client.list()
+           const existingFiles = fileList.map(f => f.name)
+           
+           // 如果文件已存在，添加序号
+           while (existingFiles.includes(actualNewName)) {
+             const nameWithoutExt = path.basename(finalNewName, oldExt)
+             actualNewName = `${nameWithoutExt}(${counter})${oldExt}`
+             counter++
+           }
+           
+           if (counter > 1) {
+             console.log(`重命名冲突，重命名为: ${actualNewName}`)
+           }
+         } catch (listError) {
+           console.warn('无法获取FTP文件列表:', listError.message)
          }
          
-         await client.rename(remotePath, newRemotePath)
+         // 获取旧文件名（只有文件名，不包含路径）
+         const oldFileName = remotePath.split('/').pop()
+         const newRemotePath = `${remotePath.substring(0, remotePath.lastIndexOf('/'))}/${actualNewName}`
+         
+         console.log(`FTP重命名: ${oldFileName} -> ${actualNewName}`)
+         
+         // 检查旧文件是否存在
+         try {
+           const fileList = await client.list()
+           const fileExists = fileList.some(f => f.name === oldFileName)
+           if (!fileExists) {
+             throw new Error(`原文件 ${oldFileName} 不存在`)
+           }
+         } catch (checkError) {
+           console.error('检查文件存在性失败:', checkError.message)
+         }
+         
+         // 执行重命名
+         await client.rename(oldFileName, actualNewName)
          
          // 更新数据库记录（如果存在）
          try {
@@ -50,7 +81,7 @@ export default defineEventHandler(async (event) => {
            await uploadHistoryRepository.update(
              { remotePath: remotePath },
              { 
-               fileName: finalNewName,
+               fileName: actualNewName,
                remotePath: newRemotePath
              }
            )
@@ -58,38 +89,13 @@ export default defineEventHandler(async (event) => {
            console.warn('关联数据库更新失败', e)
          }
 
-         return { success: true, newName: finalNewName, newRemotePath }
+         return { success: true, newName: actualNewName, newRemotePath }
        } catch (err) {
+         console.error('FTP重命名错误详情:', err)
          throw new Error(`FTP重命名失败: ${err.message}`)
        } finally {
          client.close()
        }
-    } else {
-      // 数据库重命名 (假设文件也在本地或仅仅是记录？当前逻辑似乎是混合的，但我们主要处理数据库记录)
-      // 如果只有数据库记录，其实没有实际文件对应（或者逻辑上认为文件在某处）。
-      // 鉴于 upload.post.js 是上传到 FTP 并存库，所以数据库记录理应对应 FTP 文件。
-      // 因此，只要是重命名，都应该尝试重命名 FTP 文件。
-      // 但为了保险，如果 source='database'，我们先检查 FTP，如果连不上或没文件，只改库？
-      // 按照之前 delete 的逻辑，source='database' 可能只是历史遗留。
-      // 我们这里简化：仅修改数据库记录，但通常这会导致 file not found。
-      // 建议统一走 FTP 重命名逻辑，然后同步库。
-      
-      // 但为了严谨，我们先查库里有没有重名的
-      const uploadHistoryRepository = await getUploadHistoryRepository()
-      const exist = await uploadHistoryRepository.findOne({
-        where: { fileName: finalNewName }
-      })
-      if (exist) {
-        throw new Error('文件名已存在')
-      }
-
-      await uploadHistoryRepository.update(
-        { id: idBigInt },
-        { fileName: finalNewName }
-      )
-      
-      return { success: true, newName: finalNewName }
-    }
   } catch (error) {
     return { success: false, error: error.message }
   }

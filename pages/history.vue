@@ -62,8 +62,8 @@
                   {{ item.ipAddress }} <span class="location-text" v-if="locations[item.ipAddress]">({{ locations[item.ipAddress] }})</span>
                 </span>
               </div>
-              <div class="item-path" :title="getPreviewUrl(item.remotePath)">
-                {{ getPreviewUrl(item.remotePath) }}
+              <div class="item-path" :title="item.remotePath">
+                {{ getFileNameFromPath(item.remotePath) }}
               </div>
               <div class="item-source" v-if="item.source">
                 <span class="source-tag" :class="item.source">{{ item.source === 'ftp' ? 'FTP' : 'DB' }}</span>
@@ -353,7 +353,16 @@ const handleItemClick = (item) => {
 // 获取预览 URL
 const getPreviewUrl = (path) => {
   if (!path) return ''
-  return `${window.location.origin}/api/ftp-image?path=${encodeURIComponent(path)}`
+  // 只传递文件名，不传递完整路径
+  const fileName = path.split('/').pop()
+  return `${window.location.origin}/api/ftp-image?path=${encodeURIComponent(fileName)}`
+}
+
+// 从路径中提取文件名
+const getFileNameFromPath = (path) => {
+  if (!path) return ''
+  const parts = path.split('/')
+  return parts[parts.length - 1] || path
 }
 
 // 预览图片

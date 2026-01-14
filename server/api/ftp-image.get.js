@@ -2,15 +2,16 @@ import { Writable } from 'stream'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
-  const filePath = query.path
+  const fileName = query.path || query.name
 
-  if (!filePath) {
+  if (!fileName) {
     throw createError({
       statusCode: 400,
-      statusMessage: '需要文件路径参数 (path)',
+      statusMessage: '需要文件名参数 (path 或 name)',
     })
   }
 
+  const config = useRuntimeConfig()
   const client = await createFtpClient()
 
   try {
@@ -23,13 +24,13 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    // 从 FTP 下载文件到流
-    await client.downloadTo(writable, filePath)
+    // FTP 客户端已经在 ftp.js 中切换到根目录，直接使用文件名
+    await client.downloadTo(writable, fileName)
     
     const buffer = Buffer.concat(chunks)
 
     // 确定 Content-Type
-    const ext = filePath.split('.').pop()?.toLowerCase()
+    const ext = fileName.split('.').pop()?.toLowerCase()
     let contentType = 'application/octet-stream'
     const mimeTypes = {
       'jpg': 'image/jpeg',

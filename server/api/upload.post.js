@@ -92,23 +92,44 @@ export default defineEventHandler(async (event) => {
     
     const finalFileName = `${name}_${timestamp}${ext}`
 
-    const remotePathStr = remotePath?.data?.toString() || '/static/wenjinyangyi'
+    const config = useRuntimeConfig()
+    const ftpBasePath = config.ftpBasePath || '/static/zhonghuaguji/wenjinyangji'
 
     const client = await createFtpClient()
 
     try {
-      // 确保远程目录存在
-      await client.ensureDir(remotePathStr)
-
-      // 上传文件 - 使用 Readable 流
-      const remoteFilePath = `${remotePathStr}/${finalFileName}`
-
+      // 检查文件是否已存在，如果存在则添加序号
+      let actualFileName = finalFileName
+      let counter = 1
+      
+      try {
+        const fileList = await client.list()
+        const existingFiles = fileList.map(f => f.name)
+        
+        // 如果文件已存在，添加序号
+        while (existingFiles.includes(actualFileName)) {
+          const nameWithoutExt = path.basename(finalFileName, ext)
+          actualFileName = `${nameWithoutExt}(${counter})${ext}`
+          counter++
+        }
+        
+        if (counter > 1) {
+          console.log(`文件重名，重命名为: ${actualFileName}`)
+        }
+      } catch (listError) {
+        console.warn('无法获取FTP文件列表:', listError.message)
+        // 如果无法获取文件列表，继续使用原文件名
+      }
+      
+      // FTP 客户端已经在 ftp.js 中切换到根目录，直接使用文件名
       // 将 Buffer 转换为可读流
       const buffer = Buffer.from(file.data)
       const stream = Readable.from(buffer)
 
-      await client.uploadFrom(stream, remoteFilePath)
+      await client.uploadFrom(stream, actualFileName)
 
+      // 完整路径用于数据库存储和返回
+      const remoteFilePath = `${ftpBasePath}/${actualFileName}`
       console.log(`文件上传成功: ${remoteFilePath}`)
 
       // 获取客户端信息
@@ -118,9 +139,9 @@ export default defineEventHandler(async (event) => {
       // 保存到数据库 - 使用 TypeORM
       const uploadHistoryRepository = await getUploadHistoryRepository()
       const record = await uploadHistoryRepository.save({
-        fileName: finalFileName,
+        fileName: actualFileName,
         fileSize: fileSize.toString(),
-        fileType: file.type || getMimeType(finalFileName),
+        fileType: file.type || getMimeType(actualFileName),
         remotePath: remoteFilePath,
         uploadTime: new Date(),
         ipAddress: ipAddress,
@@ -132,7 +153,7 @@ export default defineEventHandler(async (event) => {
       return {
         success: true,
         message: '文件上传成功',
-        fileName: finalFileName,
+        fileName: actualFileName,
         remotePath: remoteFilePath,
         fileSize: fileSize,
         fileSizeFormatted: formatFileSize(fileSize),

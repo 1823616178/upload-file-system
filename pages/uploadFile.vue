@@ -84,8 +84,8 @@
             <div class="file-info">
               <p class="file-name" :title="file.name">{{ file.name }}</p>
               <p class="file-size">{{ formatFileSize(file.size) }}</p>
-              <p class="file-path" v-if="file.remotePath" :title="getPreviewUrl(file.remotePath)">
-                {{ getPreviewUrl(file.remotePath) }}
+              <p class="file-path" v-if="file.remotePath" :title="file.remotePath">
+                {{ getFileNameFromPath(file.remotePath) }}
               </p>
               <p class="error-msg" v-if="file.status === 'error' && file.errorMsg">{{ file.errorMsg }}</p>
             </div>
@@ -231,7 +231,7 @@ const startUpload = async () => {
   message.value = ''
 
   // 确定远程路径
-  const basePath = '/static/wenjinyangyi'
+  const basePath = '/static/zhonghuaguji/wenjinyangji'
   let remotePath = basePath
   if (targetFolder.value && targetFolder.value.trim()) {
     const subFolder = targetFolder.value.trim().replace(/^\/+|\/+$/g, '')
@@ -313,16 +313,67 @@ const getStatusText = (status) => {
 // 获取预览 URL
 const getPreviewUrl = (path) => {
   if (!path) return ''
-  return `${window.location.origin}/api/ftp-image?path=${encodeURIComponent(path)}`
+  // 只传递文件名，不传递完整路径
+  const fileName = path.split('/').pop()
+  return `${window.location.origin}/api/ftp-image?path=${encodeURIComponent(fileName)}`
+}
+
+// 从路径中提取文件名
+const getFileNameFromPath = (path) => {
+  if (!path) return ''
+  const parts = path.split('/')
+  return parts[parts.length - 1] || path
+}
+
+// 复制文本到剪贴板（带降级方案）
+const copyToClipboard = async (text) => {
+  // 优先使用现代 Clipboard API
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch (err) {
+      console.warn('Clipboard API 失败，尝试降级方案:', err)
+    }
+  }
+
+  // 降级方案：使用 execCommand
+  try {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.top = '0'
+    textarea.style.left = '0'
+    textarea.style.width = '1px'
+    textarea.style.height = '1px'
+    textarea.style.padding = '0'
+    textarea.style.border = 'none'
+    textarea.style.outline = 'none'
+    textarea.style.boxShadow = 'none'
+    textarea.style.background = 'transparent'
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
+    
+    const successful = document.execCommand('copy')
+    document.body.removeChild(textarea)
+    
+    if (successful) {
+      return true
+    }
+    throw new Error('execCommand 复制失败')
+  } catch (err) {
+    console.error('降级复制方案也失败:', err)
+    return false
+  }
 }
 
 const copyPath = async (path) => {
-  try {
-    const url = getPreviewUrl(path)
-    await navigator.clipboard.writeText(url)
+  const url = getPreviewUrl(path)
+  const success = await copyToClipboard(url)
+  if (success) {
     toast.success('链接已复制到剪贴板')
-  } catch (error) {
-    console.error('复制失败:', error)
+  } else {
     toast.error('复制失败，请手动复制')
   }
 }

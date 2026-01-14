@@ -29,7 +29,8 @@ export default defineNuxtConfig({
       password: process.env.FTP_PASSWORD || '550312171',
       port: parseInt(process.env.FTP_PORT || '21'),
       secure: process.env.FTP_SECURE === 'true'
-    }
+    },
+    ftpBasePath: process.env.FTP_BASE_PATH || '/static/zhonghuaguji/wenjinyangji'
   },
   app: {
     head: {
