@@ -85,7 +85,7 @@ docker-compose ps
 docker-compose logs -f hanvonfile
 ```
 
-> **注意**：容器名称为 `hanvonfile`，所有配置都通过 `.env` 文件管理，包括数据库连接和 FTP 配置。
+> **注意**：容器名称为 `hanvonfile`，没有端口映射，所有配置都通过 `.env` 文件管理，包括数据库连接和 FTP 配置。
 
 #### 2. 初始化数据库（如果需要）
 

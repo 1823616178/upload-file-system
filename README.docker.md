@@ -21,13 +21,9 @@ docker-compose ps
 docker-compose logs -f hanvonfile
 ```
 
-> **注意**：容器名称为 `hanvonfile`，所有环境变量都通过 `.env` 文件配置。
+> **注意**：容器名称为 `hanvonfile`，使用主机网络模式，没有端口映射，所有环境变量都通过 `.env` 文件配置。
 
-### 2. 访问应用
-
-应用将在 `http://localhost:3000` 上运行
-
-### 3. 停止服务
+## 停止服务
 
 ```bash
 # 停止所有服务
