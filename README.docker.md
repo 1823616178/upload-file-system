@@ -18,10 +18,10 @@ docker-compose up -d --build
 docker-compose ps
 
 # 查看日志
-docker-compose logs -f app
+docker-compose logs -f hanvonfile
 ```
 
-> **注意**：所有环境变量都通过 `.env` 文件配置，包括数据库连接、FTP 配置等。
+> **注意**：容器名称为 `hanvonfile`，所有环境变量都通过 `.env` 文件配置。
 
 ### 2. 访问应用
 
@@ -92,7 +92,7 @@ DB_NAME=hanvon_tools_database
 
 ```bash
 # 进入应用容器
-docker-compose exec app sh
+docker-compose exec hanvonfile sh
 
 # 运行数据库迁移
 yarn typeorm:migration:run

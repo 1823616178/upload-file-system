@@ -19,6 +19,12 @@ RUN yarn build
 # 生产阶段
 FROM node:24-alpine AS production
 
+# 安装 FTP 客户端依赖
+RUN apk add --no-cache \
+    curl \
+    openssh-client \
+    openssl
+
 # 安装生产依赖
 WORKDIR /app
 

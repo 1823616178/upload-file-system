@@ -82,10 +82,10 @@ docker-compose up -d --build
 docker-compose ps
 
 # 查看日志
-docker-compose logs -f app
+docker-compose logs -f hanvonfile
 ```
 
-> **注意**：所有配置都通过 `.env` 文件管理，包括数据库连接和 FTP 配置。
+> **注意**：容器名称为 `hanvonfile`，所有配置都通过 `.env` 文件管理，包括数据库连接和 FTP 配置。
 
 #### 2. 初始化数据库（如果需要）
 
@@ -93,7 +93,7 @@ docker-compose logs -f app
 
 ```bash
 # 进入应用容器
-docker-compose exec app sh
+docker-compose exec hanvonfile sh
 
 # 运行数据库迁移（如果表结构需要更新）
 yarn typeorm:migration:run

@@ -1,7 +1,8 @@
 version: '3.8'
 
 services:
-  app:
+  hanvonfile:
+    container_name: hanvonfile
     build:
       context: .
       dockerfile: Dockerfile
