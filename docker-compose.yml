@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      # FTP 配置
+      - FTP_HOST=${FTP_HOST}
+      - FTP_USER=${FTP_USER}
+      - FTP_PASSWORD=${FTP_PASSWORD}
+      - FTP_PORT=${FTP_PORT}
+      - FTP_SECURE=${FTP_SECURE}
+      - FTP_BASE_PATH=${FTP_BASE_PATH}
+      # SSH 配置
+      - SSH_HOST=${SSH_HOST}
+      - SSH_USER=${SSH_USER}
+      - SSH_PASSWORD=${SSH_PASSWORD}
+      - SSH_PORT=${SSH_PORT}
+      - SSH_POWER_PASSWORD=${SSH_POWER_PASSWORD}
+    env_file:
+      - .env
+    depends_on:
+      - mysql
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: hanvon_tools_database
+      MYSQL_USER: hanvon
+      MYSQL_PASSWORD: hanvon123
+    ports:
+      - "53306:3306"
+    volumes:
+      # 持久化数据库数据
+      - mysql_data:/var/lib/mysql
+      # 初始化脚本（如果需要）
+      # - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge

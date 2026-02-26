@@ -1,0 +1,38 @@
+# Nuxt 构建产物
+.nuxt
+.output
+dist
+
+# Node modules（在 Docker 中重新安装）
+node_modules
+
+# 日志文件
+*.log
+
+# 环境文件（通过 docker-compose 传入）
+.env
+.env.local
+.env.*.local
+
+# IDE 配置
+.vscode
+.idea
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 旧的上传历史文件
+upload-history.json
+
+# 输出文件
+.output.zip
+
+# Git 目录
+.git
+.gitignore
+
+# Docker 相关
+docker-compose.yml
+Dockerfile
+.dockerignore

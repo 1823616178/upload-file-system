@@ -34,47 +34,85 @@ Database: hanvon_tools_database
 
 ## 🚀 快速开始
 
-### 1. 安装依赖
+### 本地开发模式
+
+#### 1. 安装依赖
 
 ```bash
-npm install
+yarn install
 ```
 
-### 2. 配置环境变量
+#### 2. 配置环境变量
 
 已在 `.env` 文件中配置好数据库连接信息：
 
 ```env
-DATABASE_URL="mysql://hanvon:hanvon123@192.168.1.111:53306/hanvon_tools_database?schema=public"
+# 数据库配置在 server/data-source.ts 中通过环境变量配置
 ```
 
-### 3. 同步数据库结构
-
-使用 Prisma 同步数据库表结构：
+#### 3. 运行数据库迁移
 
 ```bash
-npm run prisma:push
+yarn typeorm:migration:run
 ```
 
-或者使用迁移：
+#### 4. 运行种子数据（如果需要）
 
 ```bash
-npm run prisma:migrate
+yarn typeorm:seed
 ```
 
-### 4. 生成 Prisma Client
+#### 5. 启动开发服务器
 
 ```bash
-npm run prisma:generate
-```
-
-### 5. 启动开发服务器
-
-```bash
-npm run dev
+yarn dev
 ```
 
 访问：http://localhost:3000
+
+### Docker 部署模式
+
+#### 1. 使用 Docker Compose 启动
+
+```bash
+# 构建并启动所有服务
+docker-compose up -d --build
+
+# 查看服务状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f app
+```
+
+#### 2. 初始化数据库
+
+```bash
+# 进入应用容器
+docker-compose exec app sh
+
+# 运行数据库迁移
+yarn typeorm:migration:run
+
+# 运行种子数据（如果需要）
+yarn typeorm:seed
+```
+
+#### 3. 访问应用
+
+应用将在 `http://localhost:3000` 上运行
+
+#### 4. 停止服务
+
+```bash
+# 停止所有服务
+docker-compose down
+
+# 停止并删除数据卷（谨慎使用）
+docker-compose down -v
+```
+
+更多 Docker 部署详情请查看 [README.docker.md](README.docker.md)
 
 ## 📁 项目结构
 
@@ -93,17 +131,18 @@ uploadFileToServer/
 │   ├── index.vue              # 首页
 │   ├── uploadFile.vue         # 文件上传页
 │   └── history.vue           # 历史记录页
-├── prisma/
-│   └── schema.prisma         # Prisma 数据模型
 ├── server/
-│   ├── api/
-│   │   ├── upload.post.js     # 上传接口
-│   │   ├── history.get.js     # 获取历史接口
-│   │   └── history.delete.js # 删除历史接口
-│   └── utils/
-│       └── db.js             # Prisma 客户端
-├── database/
-│   └── schema.sql           # 原始 SQL 建表语句
+│   ├── api/                   # API 接口
+│   ├── entities/             # 数据库实体
+│   ├── middleware/           # 中间件
+│   ├── plugins/              # 插件
+│   ├── utils/                # 工具函数
+│   ├── data-source.ts        # 数据库配置
+│   └── seed.ts               # 种子数据
+├── Dockerfile               # Docker 镜像构建文件
+├── docker-compose.yml      # Docker Compose 配置
+├── .dockerignore           # Docker 构建忽略文件
+├── README.docker.md        # Docker 部署详细说明
 └── package.json
 ```
 
@@ -192,29 +231,24 @@ uploadFileToServer/
 ## 🛠️ 技术栈
 
 - **前端框架**: Nuxt 4 + Vue 3
+- **运行环境**: Node.js 24
 - **路由**: Nuxt Pages
 - **样式**: SCSS
 - **数据库**: MySQL
-- **ORM**: Prisma
+- **ORM**: TypeORM
 - **文件传输**: basic-ftp
 
-## 📝 Prisma 常用命令
+## 📝 TypeORM 常用命令
 
 ```bash
-# 生成 Prisma Client
-npm run prisma:generate
+# 生成实体和迁移
+yarn typeorm:migration:generate MigrationName
 
-# 推送 schema 到数据库（开发环境）
-npm run prisma:push
+# 运行迁移
+yarn typeorm:migration:run
 
-# 创建并应用迁移
-npm run prisma:migrate
-
-# 查看数据库（可视化）
-npx prisma studio
-
-# 重置数据库
-npx prisma migrate reset
+# 运行种子数据
+yarn typeorm:seed
 ```
 
 ## 🎨 页面说明
