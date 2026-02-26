@@ -632,7 +632,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@import '~/assets/styles/history.scss';
+@use '~/assets/styles/history.scss';
 
 // 预览模态框样式
 .preview-modal {

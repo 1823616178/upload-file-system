@@ -8,13 +8,22 @@ export default defineEventHandler(async (event) => {
       throw new Error('缺少文件路径参数')
     }
 
+    console.log('FTP 获取文件，路径:', remotePath)
+
     const client = await createFtpClient()
 
     try {
-      // 获取父目录路径
-      const lastSlashIndex = remotePath.lastIndexOf('/')
-      const dirPath = lastSlashIndex !== -1 ? remotePath.substring(0, lastSlashIndex) || '/' : '/'
-      const fileName = remotePath.split('/').pop()
+      // 处理路径：如果是 '.' 开头或直接是文件名，直接使用
+      let dirPath = '.'
+      let fileName = remotePath
+      
+      if (remotePath.includes('/')) {
+        const lastSlashIndex = remotePath.lastIndexOf('/')
+        dirPath = remotePath.substring(0, lastSlashIndex) || '.'
+        fileName = remotePath.substring(lastSlashIndex + 1)
+      }
+      
+      console.log('解析后 - 目录:', dirPath, '文件名:', fileName)
 
       // 获取父目录文件列表
       const fileList = await client.list(dirPath)
@@ -23,11 +32,16 @@ export default defineEventHandler(async (event) => {
       const file = fileList.find(f => f.name === fileName)
 
       if (!file) {
+        console.error(`文件不存在: ${fileName}, 目录: ${dirPath}`)
+        console.error('目录中的文件:', fileList.map(f => f.name))
         throw new Error('文件不存在')
       }
 
-      // 如果是目录，返回文件列表
-      if (file.type === 1) {
+      // 判断是否为目录：type === 2 或 isDirectory === true
+      const isDir = file.isDirectory === true || file.type === 2
+      
+      if (isDir) {
+        // 如果是目录，返回文件列表
         const files = await client.list(remotePath)
         return {
           success: true,
@@ -39,7 +53,7 @@ export default defineEventHandler(async (event) => {
               size: f.size,
               sizeFormatted: formatFileSize(f.size),
               type: f.type,
-              isDirectory: f.type === 1,
+              isDirectory: f.isDirectory === true || f.type === 2,
               modifyTime: f.modifyTime,
               fullPath: `${remotePath}/${f.name}`.replace('//', '/')
             }))
@@ -47,7 +61,19 @@ export default defineEventHandler(async (event) => {
         }
       } else {
         // 如果是文件，读取文件内容（用于预览）
-        const buffer = await client.downloadToBuffer(remotePath)
+        console.log('开始下载文件:', remotePath)
+        
+        // 使用 Writable 流收集数据
+        const chunks = []
+        const writableStream = new (await import('stream')).Writable({
+          write(chunk, encoding, callback) {
+            chunks.push(chunk)
+            callback()
+          }
+        })
+        
+        await client.downloadTo(writableStream, remotePath)
+        const buffer = Buffer.concat(chunks)
         const base64 = buffer.toString('base64')
         const mimeType = getMimeType(fileName)
 

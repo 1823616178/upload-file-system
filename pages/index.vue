@@ -88,5 +88,5 @@ const learnMore = () => {
 </script>
 
 <style scoped lang="scss">
-@import '~/assets/styles/home.scss';
+@use '~/assets/styles/home.scss';
 </style>

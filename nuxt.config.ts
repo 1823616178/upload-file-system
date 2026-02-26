@@ -24,11 +24,17 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     ftp: {
-      host: process.env.FTP_HOST || '192.168.1.166',
-      user: process.env.FTP_USER || 'userftp',
-      password: process.env.FTP_PASSWORD || '550312171',
+      host: process.env.FTP_HOST,
+      user: process.env.FTP_USER,
+      password: process.env.FTP_PASSWORD,
       port: parseInt(process.env.FTP_PORT || '21'),
       secure: process.env.FTP_SECURE === 'true'
+    },
+    ssh: {
+      host: process.env.SSH_HOST,
+      user: process.env.SSH_USER,
+      password: process.env.SSH_PASSWORD,
+      port: parseInt(process.env.SSH_PORT || '22')
     },
     ftpBasePath: process.env.FTP_BASE_PATH || '/static/zhonghuaguji/wenjinyangji'
   },

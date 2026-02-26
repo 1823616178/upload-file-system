@@ -5,7 +5,7 @@
 </template>
 
 <style lang="scss">
-@import '~/assets/styles/toast.scss';
+@use '~/assets/styles/toast.scss';
 
 body {
   margin: 0;

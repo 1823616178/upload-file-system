@@ -380,7 +380,7 @@ const copyPath = async (path) => {
 </script>
 
 <style scoped lang="scss">
-@import '~/assets/styles/upload.scss';
+@use '~/assets/styles/upload.scss';
 
 // 文件夹输入框样式
 .folder-input-group {

@@ -24,6 +24,7 @@
           <NuxtLink to="/" class="nav-link">首页</NuxtLink>
           <NuxtLink to="/uploadFile" class="nav-link">文件上传</NuxtLink>
           <NuxtLink to="/history" class="nav-link">历史记录</NuxtLink>
+          <NuxtLink to="/ftp-manager" class="nav-link">FTP 管理</NuxtLink>
           <a href="#" @click.prevent="logout" class="nav-link">注销</a>
         </div>
       </div>
@@ -60,5 +61,5 @@ definePageMeta({
 </script>
 
 <style lang="scss" scoped>
-@import '~/assets/styles/app.scss';
+@use '~/assets/styles/app.scss';
 </style>
