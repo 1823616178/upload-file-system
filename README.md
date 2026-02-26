@@ -75,7 +75,7 @@ yarn dev
 #### 1. 使用 Docker Compose 启动
 
 ```bash
-# 构建并启动所有服务
+# 构建并启动应用服务
 docker-compose up -d --build
 
 # 查看服务状态
@@ -85,13 +85,17 @@ docker-compose ps
 docker-compose logs -f app
 ```
 
-#### 2. 初始化数据库
+> **注意**：所有配置都通过 `.env` 文件管理，包括数据库连接和 FTP 配置。
+
+#### 2. 初始化数据库（如果需要）
+
+由于使用现有数据库，请确保数据库服务（192.168.1.111:53306）可访问：
 
 ```bash
 # 进入应用容器
 docker-compose exec app sh
 
-# 运行数据库迁移
+# 运行数据库迁移（如果表结构需要更新）
 yarn typeorm:migration:run
 
 # 运行种子数据（如果需要）
