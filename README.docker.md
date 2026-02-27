@@ -21,9 +21,13 @@ docker-compose ps
 docker-compose logs -f hanvonfile
 ```
 
-> **注意**：容器名称为 `hanvonfile`，使用主机网络模式，没有端口映射，所有环境变量都通过 `.env` 文件配置。
+> **注意**：容器名称为 `hanvonfile`，端口映射为 3000:3000，所有环境变量都通过 `.env` 文件配置。
 
-## 停止服务
+### 2. 访问应用
+
+应用将在 `http://localhost:3000` 上运行
+
+### 3. 停止服务
 
 ```bash
 # 停止所有服务
@@ -157,4 +161,3 @@ services:
     restart: always
     volumes:
       - /host/path/mysql_data:/var/lib/mysql
-```
