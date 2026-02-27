@@ -8,6 +8,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       - FTP_HOST=${FTP_HOST}
       - FTP_USER=${FTP_USER}
