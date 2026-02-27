@@ -3,7 +3,8 @@ import { Client } from 'basic-ftp'
 export const createFtpClient = async () => {
   const config = useRuntimeConfig()
   const client = new Client()
-  
+
+  console.log('FTP Config:', config.ftp)
   try {
     await client.access({
       host: config.ftp.host,
@@ -12,7 +13,7 @@ export const createFtpClient = async () => {
       port: config.ftp.port,
       secure: config.ftp.secure
     })
-    
+
     // 切换到基础路径
     if (config.ftpBasePath) {
       await client.ensureDir(config.ftpBasePath)
@@ -20,7 +21,7 @@ export const createFtpClient = async () => {
       const currentDir = await client.pwd()
       console.log(`FTP 当前目录: ${currentDir}`)
     }
-    
+
     return client
   } catch (error) {
     client.close()
