@@ -6,6 +6,23 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - FTP_HOST=${FTP_HOST}
+        - FTP_USER=${FTP_USER}
+        - FTP_PASSWORD=${FTP_PASSWORD}
+        - FTP_PORT=${FTP_PORT}
+        - FTP_SECURE=${FTP_SECURE}
+        - FTP_BASE_PATH=${FTP_BASE_PATH}
+        - SSH_HOST=${SSH_HOST}
+        - SSH_USER=${SSH_USER}
+        - SSH_PASSWORD=${SSH_PASSWORD}
+        - SSH_PORT=${SSH_PORT}
+        - SSH_POWER_PASSWORD=${SSH_POWER_PASSWORD}
+        - DB_HOST=${DB_HOST}
+        - DB_PORT=${DB_PORT}
+        - DB_USER=${DB_USER}
+        - DB_PASSWORD=${DB_PASSWORD}
+        - DB_NAME=${DB_NAME}
     ports:
       - "3000:3000"
     env_file:
