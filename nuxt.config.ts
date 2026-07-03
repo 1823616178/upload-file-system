@@ -24,19 +24,19 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     ftp: {
-      host: process.env.FTP_HOST,
-      user: process.env.FTP_USER,
-      password: process.env.FTP_PASSWORD,
-      port: parseInt(process.env.FTP_PORT || '21'),
-      secure: process.env.FTP_SECURE === 'true'
+      host: process.env.NUXT_FTP_HOST || process.env.FTP_HOST,
+      user: process.env.NUXT_FTP_USER || process.env.FTP_USER,
+      password: process.env.NUXT_FTP_PASSWORD || process.env.FTP_PASSWORD,
+      port: parseInt(process.env.NUXT_FTP_PORT || process.env.FTP_PORT || '21'),
+      secure: (process.env.NUXT_FTP_SECURE || process.env.FTP_SECURE) === 'true'
     },
     ssh: {
-      host: process.env.SSH_HOST,
-      user: process.env.SSH_USER,
-      password: process.env.SSH_PASSWORD,
-      port: parseInt(process.env.SSH_PORT || '22')
+      host: process.env.NUXT_SSH_HOST || process.env.SSH_HOST,
+      user: process.env.NUXT_SSH_USER || process.env.SSH_USER,
+      password: process.env.NUXT_SSH_PASSWORD || process.env.SSH_PASSWORD,
+      port: parseInt(process.env.NUXT_SSH_PORT || process.env.SSH_PORT || '22')
     },
-    ftpBasePath: process.env.FTP_BASE_PATH || '/static/zhonghuaguji/wenjinyangji'
+    ftpBasePath: process.env.NUXT_FTP_BASE_PATH || process.env.FTP_BASE_PATH || '/static/zhonghuaguji/wenjinyangji'
   },
   app: {
     head: {

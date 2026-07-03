@@ -69,6 +69,74 @@
     }
   }
 
+  // 筛选条件
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 30px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(0, 212, 255, 0.15);
+    border-radius: 12px;
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .filter-label {
+      color: #8892b0;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .filter-select,
+    .filter-date-input {
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 14px;
+      transition: all 0.3s ease;
+
+      &:focus {
+        outline: none;
+        border-color: #00d4ff;
+        box-shadow: 0 0 12px rgba(0, 212, 255, 0.2);
+      }
+    }
+
+    .filter-select option {
+      background: #1a1a2e;
+      color: #ffffff;
+    }
+
+    .filter-date-input {
+      color-scheme: dark;
+    }
+
+    .filter-reset-btn {
+      padding: 8px 16px;
+      background: rgba(255, 71, 87, 0.1);
+      border: 1px solid rgba(255, 71, 87, 0.4);
+      border-radius: 8px;
+      color: #ff4757;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      height: 37px;
+
+      &:hover {
+        background: rgba(255, 71, 87, 0.2);
+      }
+    }
+  }
+
   // 历史记录列表
   .history-list {
     .history-items {
@@ -259,6 +327,92 @@
     }
   }
 
+  // 骨架屏
+  .skeleton-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .skeleton-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(0, 212, 255, 0.1);
+      border-radius: 12px;
+
+      .skeleton-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        flex-shrink: 0;
+        background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.08) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+      }
+
+      .skeleton-content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+
+        .skeleton-title {
+          height: 16px;
+          width: 40%;
+          border-radius: 4px;
+          background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.08) 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+
+        .skeleton-meta {
+          display: flex;
+          gap: 16px;
+
+          .skeleton-line {
+            height: 12px;
+            width: 80px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.08) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+
+            &:nth-child(2) {
+              width: 120px;
+            }
+          }
+        }
+
+        .skeleton-path {
+          height: 12px;
+          width: 60%;
+          border-radius: 4px;
+          background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.08) 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+      }
+
+      .skeleton-actions {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+
+        .skeleton-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.08) 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+      }
+    }
+  }
+
   // 空状态
   .empty-state {
     text-align: center;
@@ -294,7 +448,7 @@
     }
   }
 
-  // 加载状态
+  // 加载状态（保留兼容）
   .loading {
     display: flex;
     flex-direction: column;
@@ -318,5 +472,14 @@
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
   }
 }

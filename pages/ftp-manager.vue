@@ -50,6 +50,36 @@
               </template>
             </button>
           </div>
+          <select v-model="sortField" class="sort-select" title="排序方式">
+            <option value="name">按名称</option>
+            <option value="size">按大小</option>
+            <option value="time">按时间</option>
+          </select>
+          <button class="action-btn sort-order-btn" @click="toggleSortOrder" :title="sortOrder === 'asc' ? '升序' : '降序'">
+            <svg viewBox="0 0 24 24" v-if="sortOrder === 'asc'">
+              <path d="M3 6h10M3 12h7M3 18h4M17 4v16M17 4l4 4M17 4l-4 4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg viewBox="0 0 24 24" v-else>
+              <path d="M3 6h4M3 12h7M3 18h10M17 20V4M17 20l4-4M17 20l-4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="action-btn new-folder-btn" @click="openMkdirModal" :disabled="loading || isShowingSearchResults">
+            <svg viewBox="0 0 24 24">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" fill="none"/>
+              <line x1="12" y1="11" x2="12" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="9" y1="14" x2="15" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            新建文件夹
+          </button>
+          <button class="action-btn upload-btn" @click="triggerUpload" :disabled="uploading || isShowingSearchResults">
+            <svg viewBox="0 0 24 24">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            {{ uploading ? '上传中...' : '上传文件' }}
+          </button>
+          <input ref="uploadInputRef" type="file" multiple class="hidden-file-input" @change="handleUploadSelect" />
           <button class="action-btn refresh-btn" @click="loadDirectory" :disabled="loading">
             <svg viewBox="0 0 24 24" :class="{ spinning: loading }">
               <path d="M23 4v6h-6M1 20v-6h6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
@@ -66,9 +96,19 @@
         </div>
       </div>
 
+      <!-- 批量操作栏 -->
+      <div class="batch-bar" v-if="selectedFiles.size > 0">
+        <span>已选择 {{ selectedFiles.size }} 项</span>
+        <button class="btn cancel-btn" @click="clearSelection">取消选择</button>
+        <button class="btn danger-btn" @click="openBatchDeleteModal">批量删除</button>
+      </div>
+
       <!-- 文件列表 -->
       <div class="file-list-container">
         <div class="file-list-header">
+          <div class="col-check">
+            <input type="checkbox" :checked="allSelected" @change="toggleSelectAll" title="全选" />
+          </div>
           <div class="col-name">名称</div>
           <div class="col-size">大小</div>
           <div class="col-time">修改时间</div>
@@ -76,14 +116,17 @@
         </div>
 
         <div class="file-list" v-if="!loading && files.length > 0">
-          <div 
-            v-for="file in files" 
-            :key="file.name" 
+          <div
+            v-for="file in sortedFiles"
+            :key="file.name"
             class="file-item"
             :class="{ 'is-directory': file.isDirectory }"
             @click="handleClick(file)"
             @dblclick="handleDoubleClick(file)"
           >
+            <div class="col-check" @click.stop>
+              <input type="checkbox" :checked="isSelected(file)" @change="toggleSelect(file)" />
+            </div>
             <div class="col-name">
               <div class="file-icon">
                 <svg v-if="file.isDirectory" viewBox="0 0 24 24">
@@ -115,9 +158,9 @@
                   <path d="M15 13l-3 3m0 0l-3-3m3 3V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
-              <button 
-                v-if="isImage(file.name) || isXml(file.name)" 
-                class="btn-icon preview-btn" 
+              <button
+                v-if="isImage(file.name) || isXml(file.name) || isPdf(file.name)"
+                class="btn-icon preview-btn"
                 @click.stop="previewFile(file)"
                 title="预览"
               >
@@ -202,6 +245,7 @@
           </div>
           <img v-else-if="previewModal.type === 'image'" :src="previewModal.url" :alt="previewModal.fileName" class="preview-image"/>
           <pre v-else-if="previewModal.type === 'xml'" class="xml-content"><code>{{ previewModal.content }}</code></pre>
+          <iframe v-else-if="previewModal.type === 'pdf'" :src="previewModal.url" class="preview-pdf" title="PDF 预览"></iframe>
         </div>
         <div class="modal-footer">
           <button @click="downloadFile(previewModal.file)" class="btn primary-btn">
@@ -211,6 +255,71 @@
               <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2"/>
             </svg>
             下载文件
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 批量删除确认模态框 -->
+    <div class="modal" v-if="batchDeleteModal.show" @click.self="closeBatchDeleteModal">
+      <div class="modal-content danger">
+        <div class="modal-header">
+          <h3>确认批量删除</h3>
+          <button @click="closeBatchDeleteModal" class="close-btn">
+            <svg viewBox="0 0 24 24">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="warning-icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" fill="none"/>
+              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2"/>
+              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </div>
+          <p class="confirm-text">
+            确定要删除选中的 <strong>{{ selectedFiles.size }}</strong> 项吗？
+            <br/><span class="danger-text">其中的目录及其所有内容也将被删除！</span>
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeBatchDeleteModal" class="btn cancel-btn">取消</button>
+          <button @click="executeBatchDelete" class="btn danger-btn" :disabled="batchDeleteModal.loading">
+            {{ batchDeleteModal.loading ? '删除中...' : '确认删除' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新建文件夹模态框 -->
+    <div class="modal" v-if="mkdirModal.show" @click.self="closeMkdirModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>新建文件夹</h3>
+          <button @click="closeMkdirModal" class="close-btn">
+            <svg viewBox="0 0 24 24">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="input-group">
+            <label>文件夹名称</label>
+            <input
+              type="text"
+              v-model="mkdirModal.name"
+              @keyup.enter="executeMkdir"
+              ref="mkdirInputRef"
+              placeholder="请输入文件夹名称"
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeMkdirModal" class="btn cancel-btn">取消</button>
+          <button @click="executeMkdir" class="btn primary-btn" :disabled="mkdirModal.loading">
+            {{ mkdirModal.loading ? '创建中...' : '确认' }}
           </button>
         </div>
       </div>
@@ -273,10 +382,23 @@
               <br/><span class="danger-text">该目录下的所有文件也将被删除！</span>
             </template>
           </p>
+          <div class="input-group" v-if="deleteModal.isDirectory">
+            <label>请输入目录名 <strong>{{ deleteModal.fileName }}</strong> 以确认删除</label>
+            <input
+              type="text"
+              v-model="deleteModal.confirmText"
+              @keyup.enter="executeDelete"
+              placeholder="输入目录名确认"
+            />
+          </div>
         </div>
         <div class="modal-footer">
           <button @click="closeDeleteModal" class="btn cancel-btn">取消</button>
-          <button @click="executeDelete" class="btn danger-btn" :disabled="deleteModal.loading">
+          <button
+            @click="executeDelete"
+            class="btn danger-btn"
+            :disabled="deleteModal.loading || (deleteModal.isDirectory && deleteModal.confirmText !== deleteModal.fileName)"
+          >
             {{ deleteModal.loading ? '删除中...' : '确认删除' }}
           </button>
         </div>
@@ -288,6 +410,7 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { toast } from '~/utils/toast'
+import { isImageFile, isXmlFile, isPdfFile } from '~/utils/fileTypes'
 
 const loading = ref(false)
 const searching = ref(false)
@@ -304,10 +427,70 @@ const pathSegments = computed(() => {
   return currentPath.value.split('/').filter(Boolean)
 })
 
+// 排序：字段 + 顺序（目录始终排在文件前面）
+const sortField = ref('name') // name | size | time
+const sortOrder = ref('asc') // asc | desc
+
+const sortedFiles = computed(() => {
+  const list = [...files.value]
+  list.sort((a, b) => {
+    if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1
+
+    let cmp = 0
+    if (sortField.value === 'size') {
+      cmp = (a.size || 0) - (b.size || 0)
+    } else if (sortField.value === 'time') {
+      cmp = new Date(a.modifyTime || 0).getTime() - new Date(b.modifyTime || 0).getTime()
+    } else {
+      cmp = a.name.localeCompare(b.name)
+    }
+    return sortOrder.value === 'asc' ? cmp : -cmp
+  })
+  return list
+})
+
+const toggleSortOrder = () => {
+  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+}
+
+// 批量选择
+const selectedFiles = ref(new Map()) // fullPath -> file
+
+const isSelected = (file) => selectedFiles.value.has(file.fullPath)
+
+const toggleSelect = (file) => {
+  const map = new Map(selectedFiles.value)
+  if (map.has(file.fullPath)) {
+    map.delete(file.fullPath)
+  } else {
+    map.set(file.fullPath, file)
+  }
+  selectedFiles.value = map
+}
+
+const clearSelection = () => {
+  selectedFiles.value = new Map()
+}
+
+const allSelected = computed(() => {
+  return sortedFiles.value.length > 0 && sortedFiles.value.every(f => selectedFiles.value.has(f.fullPath))
+})
+
+const toggleSelectAll = () => {
+  if (allSelected.value) {
+    clearSelection()
+  } else {
+    const map = new Map()
+    sortedFiles.value.forEach(f => map.set(f.fullPath, f))
+    selectedFiles.value = map
+  }
+}
+
 // 加载目录
 const loadDirectory = async () => {
   loading.value = true
   isShowingSearchResults.value = false
+  clearSelection()
   try {
     const response = await $fetch('/api/ftp-directory', {
       query: { path: currentPath.value }
@@ -315,13 +498,7 @@ const loadDirectory = async () => {
     if (response.success) {
       // 调试日志
       console.log('FTP 返回的文件列表:', response.data.files)
-      
-      // 排序：文件夹在前，文件在后
-      files.value = response.data.files.sort((a, b) => {
-        if (a.isDirectory && !b.isDirectory) return -1
-        if (!a.isDirectory && b.isDirectory) return 1
-        return a.name.localeCompare(b.name)
-      })
+      files.value = response.data.files
     } else {
       toast.error(response.error || '加载目录失败')
     }
@@ -368,6 +545,7 @@ const handleSearch = async () => {
     searchAbortController.abort()
   }
   searchAbortController = new AbortController()
+  clearSelection()
 
   loading.value = true
   searching.value = true
@@ -451,22 +629,15 @@ const handleClick = (file) => {
 const handleDoubleClick = (file) => {
   if (file.isDirectory) {
     navigateTo(file.fullPath)
-  } else if (isImage(file.name) || isXml(file.name)) {
+  } else if (isImage(file.name) || isXml(file.name) || isPdf(file.name)) {
     previewFile(file)
   }
 }
 
-// 判断是否为图片
-const isImage = (filename) => {
-  const ext = filename.split('.').pop()?.toLowerCase()
-  return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext)
-}
-
-// 判断是否为XML文件
-const isXml = (filename) => {
-  const ext = filename.split('.').pop()?.toLowerCase()
-  return ext === 'xml'
-}
+// 判断是否为图片 / XML / PDF
+const isImage = isImageFile
+const isXml = isXmlFile
+const isPdf = isPdfFile
 
 // 格式化时间
 const formatTime = (time) => {
@@ -496,7 +667,7 @@ const previewModal = ref({
 const previewFile = async (file) => {
   console.log('预览文件:', file.name, '路径:', file.fullPath)
   
-  const fileType = isXml(file.name) ? 'xml' : 'image'
+  const fileType = isXml(file.name) ? 'xml' : (isPdf(file.name) ? 'pdf' : 'image')
   
   previewModal.value = {
     show: true,
@@ -552,26 +723,15 @@ const closePreviewModal = () => {
   previewModal.value.show = false
 }
 
-// 下载文件
-const downloadFile = async (file) => {
-  try {
-    const response = await $fetch('/api/ftp-file', {
-      query: { path: file.fullPath }
-    })
-    if (response.success && response.data.base64) {
-      const link = document.createElement('a')
-      link.href = response.data.previewUrl
-      link.download = file.name
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      toast.success('开始下载')
-    } else {
-      toast.error('下载失败')
-    }
-  } catch (error) {
-    toast.error('下载失败')
-  }
+// 下载文件（直接走流式下载接口，避免整个文件以 base64 塞进内存）
+const downloadFile = (file) => {
+  const url = `/api/ftp-download?path=${encodeURIComponent(file.fullPath)}`
+  const link = document.createElement('a')
+  link.href = url
+  link.download = file.name
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
 }
 
 // 重命名模态框
@@ -640,6 +800,7 @@ const deleteModal = ref({
   file: null,
   fileName: '',
   isDirectory: false,
+  confirmText: '',
   loading: false
 })
 
@@ -649,6 +810,7 @@ const openDeleteModal = (file) => {
     file,
     fileName: file.name,
     isDirectory: file.isDirectory,
+    confirmText: '',
     loading: false
   }
 }
@@ -658,7 +820,11 @@ const closeDeleteModal = () => {
 }
 
 const executeDelete = async () => {
-  const { file } = deleteModal.value
+  const { file, isDirectory, confirmText, fileName } = deleteModal.value
+  if (isDirectory && confirmText !== fileName) {
+    toast.warning('请输入正确的目录名以确认删除')
+    return
+  }
   deleteModal.value.loading = true
   try {
     const response = await $fetch('/api/ftp-delete', {
@@ -679,6 +845,154 @@ const executeDelete = async () => {
     toast.error('删除失败')
   } finally {
     deleteModal.value.loading = false
+  }
+}
+
+// 批量删除模态框
+const batchDeleteModal = ref({
+  show: false,
+  loading: false
+})
+
+const openBatchDeleteModal = () => {
+  batchDeleteModal.value = { show: true, loading: false }
+}
+
+const closeBatchDeleteModal = () => {
+  batchDeleteModal.value.show = false
+}
+
+const executeBatchDelete = async () => {
+  batchDeleteModal.value.loading = true
+  const targets = Array.from(selectedFiles.value.values())
+  let successCount = 0
+  let failCount = 0
+
+  for (const file of targets) {
+    try {
+      const response = await $fetch('/api/ftp-delete', {
+        method: 'POST',
+        body: {
+          path: file.fullPath,
+          isDirectory: file.isDirectory
+        }
+      })
+      if (response.success) {
+        successCount++
+      } else {
+        failCount++
+      }
+    } catch (error) {
+      failCount++
+    }
+  }
+
+  batchDeleteModal.value.loading = false
+  closeBatchDeleteModal()
+  clearSelection()
+
+  if (successCount > 0) {
+    toast.success(`成功删除 ${successCount} 项${failCount > 0 ? `，${failCount} 项失败` : ''}`)
+  } else {
+    toast.error('删除失败')
+  }
+  loadDirectory()
+}
+
+// 新建文件夹
+const mkdirModal = ref({
+  show: false,
+  name: '',
+  loading: false
+})
+const mkdirInputRef = ref(null)
+
+const openMkdirModal = () => {
+  mkdirModal.value = { show: true, name: '', loading: false }
+  nextTick(() => {
+    mkdirInputRef.value?.focus()
+  })
+}
+
+const closeMkdirModal = () => {
+  mkdirModal.value.show = false
+}
+
+const executeMkdir = async () => {
+  if (!mkdirModal.value.name.trim()) {
+    toast.warning('请输入文件夹名称')
+    return
+  }
+  mkdirModal.value.loading = true
+  try {
+    const response = await $fetch('/api/ftp-mkdir', {
+      method: 'POST',
+      body: {
+        path: currentPath.value,
+        name: mkdirModal.value.name.trim()
+      }
+    })
+    if (response.success) {
+      toast.success('文件夹创建成功')
+      closeMkdirModal()
+      loadDirectory()
+    } else {
+      toast.error(response.error || '创建文件夹失败')
+    }
+  } catch (error) {
+    toast.error('创建文件夹失败')
+  } finally {
+    mkdirModal.value.loading = false
+  }
+}
+
+// 上传文件到当前目录
+const uploading = ref(false)
+const uploadInputRef = ref(null)
+
+const triggerUpload = () => {
+  uploadInputRef.value?.click()
+}
+
+const handleUploadSelect = async (e) => {
+  const selectedFiles = Array.from(e.target.files || [])
+  if (selectedFiles.length === 0) return
+
+  uploading.value = true
+  let successCount = 0
+  let failCount = 0
+
+  for (const file of selectedFiles) {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('targetDir', currentPath.value)
+
+      const response = await $fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (response.success) {
+        successCount++
+      } else {
+        failCount++
+        console.error('上传失败:', response.error)
+      }
+    } catch (error) {
+      failCount++
+      console.error('上传失败:', error)
+    }
+  }
+
+  uploading.value = false
+  e.target.value = ''
+
+  if (successCount > 0) {
+    toast.success(`成功上传 ${successCount} 个文件${failCount > 0 ? `，${failCount} 个失败` : ''}`)
+    loadDirectory()
+  } else {
+    toast.error('上传失败')
   }
 }
 

@@ -104,7 +104,9 @@ export default defineEventHandler(async (event) => {
     }
 
     const file = formData.find(item => item.name === 'file')
-    const remotePath = formData.find(item => item.name === 'remotePath')
+    const targetDirField = formData.find(item => item.name === 'targetDir')
+    // targetDir 用于 ftp-manager 上传到当前浏览目录的场景；不传则按原有逻辑上传到 FTP 根目录并记录历史
+    const targetDir = targetDirField?.data ? targetDirField.data.toString().trim() : ''
 
     if (!file || !file.data) {
       throw new Error('未找到上传的文件')
@@ -147,7 +149,7 @@ export default defineEventHandler(async (event) => {
       let counter = 1
 
       try {
-        const fileList = await client.list()
+        const fileList = await client.list(targetDir || undefined)
         const existingFiles = fileList.map(f => f.name)
 
         // 如果文件已存在，添加序号
@@ -165,16 +167,33 @@ export default defineEventHandler(async (event) => {
         // 如果无法获取文件列表，继续使用原文件名
       }
 
-      // FTP 客户端已经在 ftp.js 中切换到根目录，直接使用文件名
+      // targetDir 为空时上传到 FTP 根目录（原有 /uploadFile 流程）；
+      // 否则上传到 ftp-manager 当前浏览的目录
+      const uploadDestination = targetDir ? `${targetDir}/${actualFileName}` : actualFileName
+
       // 将 Buffer 转换为可读流
       const buffer = Buffer.from(file.data)
       const stream = Readable.from(buffer)
 
-      await client.uploadFrom(stream, actualFileName)
+      await client.uploadFrom(stream, uploadDestination)
 
       // 完整路径用于数据库存储和返回
-      const remoteFilePath = `${ftpBasePath}/${actualFileName}`
+      const remoteFilePath = targetDir
+        ? `${ftpBasePath}${targetDir.startsWith('/') ? '' : '/'}${targetDir}/${actualFileName}`
+        : `${ftpBasePath}/${actualFileName}`
       console.log(`文件上传成功: ${remoteFilePath}`)
+
+      // 通过 ftp-manager 上传到子目录的文件不计入"上传历史"（该功能仅针对根目录的curated 上传流程）
+      if (targetDir) {
+        return {
+          success: true,
+          message: '文件上传成功',
+          fileName: actualFileName,
+          remotePath: remoteFilePath,
+          fileSize: fileSize,
+          fileSizeFormatted: formatFileSize(fileSize)
+        }
+      }
 
       // 获取客户端信息
       const ipAddress = getRequestIP(event, { xForwardedFor: true }) || '0.0.0.0'

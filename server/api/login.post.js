@@ -1,5 +1,6 @@
 import { setCookie } from 'h3';
 import { getUserRepository } from '~/server/utils/db';
+import { createSession } from '~/server/utils/session';
 import crypto from 'crypto';
 
 function verifyPassword(password, storedHash) {
@@ -35,8 +36,18 @@ export default defineEventHandler(async (event) => {
     const isValid = await verifyPassword(password, user.password);
 
     if (isValid) {
-      // 登录成功
-      setCookie(event, 'auth-token', 'valid-session-token', {
+      // 登录成功，生成随机 session token
+      const sessionToken = createSession(user.username);
+
+      // session-id: 真正用于服务端鉴权，httpOnly 防止被 XSS 读取
+      setCookie(event, 'session-id', sessionToken, {
+        httpOnly: true,
+        path: '/',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      });
+      // auth-token: 不携带任何权限，仅供前端路由中间件判断是否已登录
+      setCookie(event, 'auth-token', '1', {
         httpOnly: false,
         path: '/',
         sameSite: 'strict',

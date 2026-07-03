@@ -4,7 +4,7 @@
 
 - Docker 20.10+
 - Docker Compose 1.29+
-- Node.js 24+
+- Node.js 22+
 
 ## 快速开始
 
@@ -43,26 +43,26 @@ docker-compose down -v
 
 ```env
 # FTP 配置
-FTP_HOST=192.168.1.166
-FTP_USER=userftp
-FTP_PASSWORD=550312171
-FTP_PORT=21
-FTP_SECURE=false
-FTP_BASE_PATH=/static/zhonghuaguji/wenjinyangji
+NUXT_FTP_HOST=192.168.1.166
+NUXT_FTP_USER=userftp
+NUXT_FTP_PASSWORD=550312171
+NUXT_FTP_PORT=21
+NUXT_FTP_SECURE=false
+NUXT_FTP_BASE_PATH=/static/zhonghuaguji/wenjinyangji
 
 # SSH 配置
-SSH_POWER_PASSWORD=Henkaku@1
-SSH_HOST=192.168.1.166
-SSH_USER=userftp
-SSH_PASSWORD=550312171
-SSH_PORT=22
+NUXT_SSH_POWER_PASSWORD=Henkaku@1
+NUXT_SSH_HOST=192.168.1.166
+NUXT_SSH_USER=userftp
+NUXT_SSH_PASSWORD=550312171
+NUXT_SSH_PORT=22
 
 # 数据库配置
-DB_HOST=mysql
-DB_PORT=3306
-DB_USER=hanvon
-DB_PASSWORD=hanvon123
-DB_NAME=hanvon_tools_database
+NUXT_DB_HOST=mysql
+NUXT_DB_PORT=3306
+NUXT_DB_USER=hanvon
+NUXT_DB_PASSWORD=hanvon123
+NUXT_DB_NAME=hanvon_tools_database
 ```
 
 ## 目录结构
@@ -92,13 +92,13 @@ DB_NAME=hanvon_tools_database
 
 ```bash
 # 进入应用容器
-docker-compose exec hanvonfile sh
+docker compose exec hanvonfile sh
 
 # 运行数据库迁移
-yarn typeorm:migration:run
+npm run typeorm:migration:run
 
 # 运行种子数据（如果需要）
-yarn typeorm:seed
+npm run typeorm:seed
 ```
 
 ## 故障排除
@@ -107,18 +107,17 @@ yarn typeorm:seed
 
 ```bash
 # 查看所有服务日志
-docker-compose logs
+docker compose logs
 
 # 查看特定服务日志
-docker-compose logs app
-docker-compose logs mysql
+docker compose logs hanvonfile
 ```
 
 ### 重建服务
 
 ```bash
 # 重新构建并启动
-docker-compose up -d --build --force-recreate
+docker compose up -d --build --force-recreate
 ```
 
 ### 数据库连接问题
@@ -133,7 +132,7 @@ docker-compose up -d --build --force-recreate
 如果遇到权限问题：
 ```bash
 # 在容器中修复权限
-docker-compose exec app chown -R nextjs:nodejs /app/.output
+docker compose exec hanvonfile chown -R nextjs:nodejs /app/.output
 ```
 
 ## 生产环境部署

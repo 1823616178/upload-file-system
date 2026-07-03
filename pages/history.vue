@@ -18,8 +18,63 @@
                 </div>
             </div>
 
+            <!-- 筛选条件 -->
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label class="filter-label">文件类型</label>
+                    <select v-model="filters.fileCategory" @change="handleFilterChange" class="filter-select">
+                        <option value="all">全部类型</option>
+                        <option value="image">图片</option>
+                        <option value="document">文档</option>
+                        <option value="archive">压缩包</option>
+                        <option value="font">字体</option>
+                        <option value="other">其他</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">来源</label>
+                    <select v-model="filters.source" @change="handleFilterChange" class="filter-select">
+                        <option value="all">全部来源</option>
+                        <option value="database">系统上传</option>
+                        <option value="ftp">FTP</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">开始日期</label>
+                    <input type="date" v-model="filters.startDate" @change="handleFilterChange"
+                        class="filter-date-input" />
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">结束日期</label>
+                    <input type="date" v-model="filters.endDate" @change="handleFilterChange"
+                        class="filter-date-input" />
+                </div>
+                <button v-if="hasActiveFilters" @click="resetFilters" class="filter-reset-btn">重置筛选</button>
+            </div>
+
+            <!-- 骨架屏 -->
+            <div class="skeleton-list" v-if="loading">
+                <div v-for="n in 6" :key="n" class="skeleton-item">
+                    <div class="skeleton-icon"></div>
+                    <div class="skeleton-content">
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-meta">
+                            <div class="skeleton-line"></div>
+                            <div class="skeleton-line"></div>
+                        </div>
+                        <div class="skeleton-path"></div>
+                    </div>
+                    <div class="skeleton-actions">
+                        <div class="skeleton-btn"></div>
+                        <div class="skeleton-btn"></div>
+                        <div class="skeleton-btn"></div>
+                        <div class="skeleton-btn"></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 历史记录列表 -->
-            <div class="history-list" v-if="historyList.length > 0">
+            <div class="history-list" v-else-if="historyList.length > 0">
                 <div class="history-items">
                     <div v-for="item in historyList" :key="item.id" class="history-item" @click="handleItemClick(item)">
                         <div class="item-icon">
@@ -154,12 +209,6 @@
                 <NuxtLink to="/uploadFile" class="upload-link">去上传文件</NuxtLink>
             </div>
 
-            <!-- 加载状态 -->
-            <div class="loading" v-if="loading">
-                <div class="loading-spinner"></div>
-                <p>加载中...</p>
-            </div>
-
             <!-- 图片预览模态框 -->
             <div class="preview-modal" v-if="preview.show" @click.self="closePreview">
                 <div class="modal-content" @click.stop>
@@ -262,8 +311,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { toast } from '~/utils/toast'
+import { isImageFile } from '~/utils/fileTypes'
 
 const historyList = ref([])
 const loading = ref(false)
@@ -272,6 +322,39 @@ const currentPage = ref(1)
 const totalPages = ref(1)
 const pageSize = 10
 const locations = ref({})
+
+// 筛选条件
+const filters = ref({
+    fileCategory: 'all',
+    source: 'all',
+    startDate: '',
+    endDate: ''
+})
+
+const hasActiveFilters = computed(() => {
+    return filters.value.fileCategory !== 'all' ||
+        filters.value.source !== 'all' ||
+        filters.value.startDate !== '' ||
+        filters.value.endDate !== ''
+})
+
+// 筛选条件变化
+const handleFilterChange = () => {
+    currentPage.value = 1
+    loadHistory()
+}
+
+// 重置筛选条件
+const resetFilters = () => {
+    filters.value = {
+        fileCategory: 'all',
+        source: 'all',
+        startDate: '',
+        endDate: ''
+    }
+    currentPage.value = 1
+    loadHistory()
+}
 
 // 预览状态
 const preview = ref({
@@ -329,7 +412,11 @@ const loadHistory = async () => {
             query: {
                 page: currentPage.value,
                 pageSize: pageSize,
-                search: searchQuery.value
+                search: searchQuery.value,
+                fileCategory: filters.value.fileCategory,
+                source: filters.value.source,
+                startDate: filters.value.startDate,
+                endDate: filters.value.endDate
             }
         })
 
@@ -371,11 +458,7 @@ const handleItemClick = (item) => {
 }
 
 // 判断是否为图片
-const isImage = (filename) => {
-    if (!filename) return false
-    const ext = filename.split('.').pop()?.toLowerCase()
-    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext)
-}
+const isImage = isImageFile
 
 // 获取预览 URL
 const getPreviewUrl = (path) => {
