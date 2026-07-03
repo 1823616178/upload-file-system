@@ -89,7 +89,7 @@
                             </div>
                             <div class="item-source" v-if="item.source">
                                 <span class="source-tag" :class="item.source">{{ item.source === 'ftp' ? 'FTP' : 'DB'
-                                    }}</span>
+                                }}</span>
                             </div>
                         </div>
                         <div class="item-actions">
@@ -565,8 +565,8 @@ const executeDelete = async () => {
             closeDeleteModal()
             closePreview() // 如果在预览中删除，也关闭预览
 
-            // 从列表中移除该项
-            historyList.value = historyList.value.filter(item => item.id !== id)
+            // 从列表中移除该项（统一转为字符串比较，避免 BigInt/Number 类型不一致）
+            historyList.value = historyList.value.filter(item => String(item.id) !== String(id))
         } else {
             toast.error('删除失败: ' + (response.error || '未知错误'))
         }

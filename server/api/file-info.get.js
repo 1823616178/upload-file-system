@@ -2,7 +2,8 @@
 export default defineEventHandler(async (event) => {
   try {
     const query = getQuery(event)
-    const remotePath = query.path || '/static/wenjinyangyi'
+    const config = useRuntimeConfig()
+    const remotePath = query.path || config.ftpBasePath || '/static/zhonghuaguji/wenjinyangji'
 
     const client = await createFtpClient()
     let fileList = []

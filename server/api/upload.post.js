@@ -2,19 +2,46 @@ import { Readable } from 'stream'
 import path from 'path'
 import { getUploadHistoryRepository } from '~/server/utils/db.js'
 
-// 允许的图片格式
-const ALLOWED_IMAGE_TYPES = [
+// 允许的文件 MIME 类型
+const ALLOWED_FILE_TYPES = [
   'image/jpeg',
   'image/jpg',
   'image/png',
   'image/gif',
   'image/webp',
   'image/bmp',
-  'image/svg+xml'
+  'image/svg+xml',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain',
+  'text/xml',
+  'application/xml',
+  'application/json',
+  'application/zip',
+  'application/x-rar-compressed',
+  'application/x-7z-compressed',
+  'application/font-sfnt',
+  'application/x-font-ttf',
+  'font/ttf',
+  'font/otf',
+  'application/font-woff',
+  'font/woff',
+  'application/font-woff2',
+  'font/woff2'
 ]
 
 // 允许的文件扩展名
-const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']
+const ALLOWED_EXTENSIONS = [
+  '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg',
+  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+  '.txt', '.xml', '.json', '.zip', '.rar', '.7z',
+  '.ttf', '.otf', '.woff', '.woff2'
+]
 
 // 最大文件大小 100MB (100 * 1024 * 1024 bytes)
 const MAX_FILE_SIZE = 100 * 1024 * 1024
@@ -23,7 +50,7 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024
 const validateFileType = (filename, type) => {
   const ext = path.extname(filename).toLowerCase()
   const isValidExtension = ALLOWED_EXTENSIONS.includes(ext)
-  const isValidMimeType = ALLOWED_IMAGE_TYPES.includes(type?.toLowerCase())
+  const isValidMimeType = ALLOWED_FILE_TYPES.includes(type?.toLowerCase())
   return isValidExtension || isValidMimeType
 }
 
@@ -46,7 +73,24 @@ const getMimeType = (filename) => {
     '.gif': 'image/gif',
     '.webp': 'image/webp',
     '.bmp': 'image/bmp',
-    '.svg': 'image/svg+xml'
+    '.svg': 'image/svg+xml',
+    '.pdf': 'application/pdf',
+    '.doc': 'application/msword',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.xls': 'application/vnd.ms-excel',
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.ppt': 'application/vnd.ms-powerpoint',
+    '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    '.txt': 'text/plain',
+    '.xml': 'application/xml',
+    '.json': 'application/json',
+    '.zip': 'application/zip',
+    '.rar': 'application/x-rar-compressed',
+    '.7z': 'application/x-7z-compressed',
+    '.ttf': 'font/ttf',
+    '.otf': 'font/otf',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2'
   }
   return mimeTypes[ext] || 'application/octet-stream'
 }
@@ -76,7 +120,7 @@ export default defineEventHandler(async (event) => {
 
     // 验证文件类型
     if (!validateFileType(fileName, file.type)) {
-      throw new Error('文件格式不支持，仅支持图片格式：jpg, png, gif, webp, bmp, svg')
+      throw new Error('文件格式不支持，支持的格式：jpg, png, gif, webp, bmp, svg, pdf, doc/docx, xls/xlsx, ppt/pptx, txt, xml, json, zip, rar, 7z, ttf, otf, woff, woff2')
     }
 
     // 生成带时间戳的新文件名
@@ -89,7 +133,7 @@ export default defineEventHandler(async (event) => {
       String(now.getHours()).padStart(2, '0') +
       String(now.getMinutes()).padStart(2, '0') +
       String(now.getSeconds()).padStart(2, '0')
-    
+
     const finalFileName = `${name}_${timestamp}${ext}`
 
     const config = useRuntimeConfig()
@@ -101,18 +145,18 @@ export default defineEventHandler(async (event) => {
       // 检查文件是否已存在，如果存在则添加序号
       let actualFileName = finalFileName
       let counter = 1
-      
+
       try {
         const fileList = await client.list()
         const existingFiles = fileList.map(f => f.name)
-        
+
         // 如果文件已存在，添加序号
         while (existingFiles.includes(actualFileName)) {
           const nameWithoutExt = path.basename(finalFileName, ext)
           actualFileName = `${nameWithoutExt}(${counter})${ext}`
           counter++
         }
-        
+
         if (counter > 1) {
           console.log(`文件重名，重命名为: ${actualFileName}`)
         }
@@ -120,7 +164,7 @@ export default defineEventHandler(async (event) => {
         console.warn('无法获取FTP文件列表:', listError.message)
         // 如果无法获取文件列表，继续使用原文件名
       }
-      
+
       // FTP 客户端已经在 ftp.js 中切换到根目录，直接使用文件名
       // 将 Buffer 转换为可读流
       const buffer = Buffer.from(file.data)
