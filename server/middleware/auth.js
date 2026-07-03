@@ -1,8 +1,8 @@
 import { getCookie, sendRedirect } from 'h3';
 import { validateSession } from '../utils/session';
 
-// 无需登录即可访问的 API（登录、登出、健康检查）
-const PUBLIC_API_PATHS = ['/api/login', '/api/logout', '/api/health'];
+// 无需登录即可访问的 API（登录、登出、健康检查、公开图片预览）
+const PUBLIC_API_PATHS = ['/api/login', '/api/logout', '/api/health', '/api/ftp-image', '/api/ftp-thumbnail'];
 
 export default defineEventHandler((event) => {
   const url = event.req.url || '';
