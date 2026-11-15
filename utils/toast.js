@@ -34,10 +34,15 @@ export const toast = {
       info: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
     };
 
-    toastEl.innerHTML = `
-      <div class="toast-icon">${icons[type]}</div>
-      <div class="toast-message">${message}</div>
-    `;
+    // 使用 textContent 写入消息，避免消息中的文件名等内容被解析为 HTML（XSS）
+    const iconWrap = document.createElement('div');
+    iconWrap.className = 'toast-icon';
+    iconWrap.innerHTML = icons[type] || icons.info;
+    const messageEl = document.createElement('div');
+    messageEl.className = 'toast-message';
+    messageEl.textContent = message;
+    toastEl.appendChild(iconWrap);
+    toastEl.appendChild(messageEl);
 
     container.appendChild(toastEl);
 

@@ -8,7 +8,13 @@ function verifyPassword(password, storedHash) {
     const [salt, key] = storedHash.split(':');
     crypto.scrypt(password, salt, 64, (err, derivedKey) => {
       if (err) reject(err);
-      resolve(key === derivedKey.toString('hex'));
+      // 常数时间比较，避免时序侧信道
+      const keyBuffer = Buffer.from(key || '', 'hex');
+      const derivedBuffer = derivedKey;
+      resolve(
+        keyBuffer.length === derivedBuffer.length &&
+          crypto.timingSafeEqual(keyBuffer, derivedBuffer)
+      );
     });
   });
 }

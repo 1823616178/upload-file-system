@@ -1,3 +1,5 @@
+import { withFtpClient } from '~/server/utils/ftp.js'
+
 export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event)
@@ -13,19 +15,16 @@ export default defineEventHandler(async (event) => {
     const targetName = name.trim()
     const fullPath = dirPath && dirPath !== '.' ? `${dirPath}/${targetName}` : targetName
 
-    const client = await createFtpClient()
-    try {
-      // basic-ftp 的 ensureDir 会创建目录并将其切换为当前工作目录，
-      // 由于该 client 用完即关闭，不会影响其他请求
+    // basic-ftp 的 ensureDir 会创建目录并将其切换为当前工作目录；
+    // withFtpClient 归还连接前会统一 cd 回基础路径，不会污染后续请求
+    await withFtpClient(async (client) => {
       await client.ensureDir(fullPath)
+    })
 
-      return {
-        success: true,
-        message: '文件夹创建成功',
-        path: fullPath
-      }
-    } finally {
-      client.close()
+    return {
+      success: true,
+      message: '文件夹创建成功',
+      path: fullPath
     }
   } catch (error) {
     console.error('创建文件夹失败:', error)

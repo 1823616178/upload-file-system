@@ -1,3 +1,5 @@
+import { withFtpClient } from '~/server/utils/ftp.js'
+
 export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event)
@@ -7,9 +9,7 @@ export default defineEventHandler(async (event) => {
       throw new Error('缺少文件路径参数')
     }
 
-    const client = await createFtpClient()
-
-    try {
+    await withFtpClient(async (client) => {
       if (isDirectory) {
         // 递归删除目录
         await client.removeDir(path)
@@ -19,16 +19,11 @@ export default defineEventHandler(async (event) => {
         await client.remove(path)
         console.log(`FTP 删除文件成功: ${path}`)
       }
+    })
 
-      return {
-        success: true,
-        message: isDirectory ? '目录删除成功' : '文件删除成功'
-      }
-    } catch (ftpError) {
-      console.error('FTP 删除失败:', ftpError)
-      throw new Error(`删除失败: ${ftpError.message}`)
-    } finally {
-      client.close()
+    return {
+      success: true,
+      message: isDirectory ? '目录删除成功' : '文件删除成功'
     }
   } catch (error) {
     console.error('删除操作失败:', error)

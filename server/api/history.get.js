@@ -1,5 +1,20 @@
+import { Like, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm'
 import { getUploadHistoryRepository } from '~/server/utils/db.js'
-import { Like } from 'typeorm'
+import { withFtpClient } from '~/server/utils/ftp.js'
+import { formatFileSize, getFileCategory } from '~/server/utils/file-info.js'
+
+// FTP 根目录列表的内存缓存：翻页/筛选时避免每次都重新连接 FTP 拉全量列表
+const FTP_LIST_CACHE_TTL = 30 * 1000
+let ftpListCache = null // { data, expiresAt }
+
+const getCachedFtpList = async () => {
+  if (ftpListCache && Date.now() < ftpListCache.expiresAt) {
+    return ftpListCache.data
+  }
+  const data = await withFtpClient(async (client) => client.list())
+  ftpListCache = { data, expiresAt: Date.now() + FTP_LIST_CACHE_TTL }
+  return data
+}
 
 export default defineEventHandler(async (event) => {
   try {
@@ -15,7 +30,6 @@ export default defineEventHandler(async (event) => {
 
     const config = useRuntimeConfig()
     const ftpBasePath = config.ftpBasePath || '/static/zhonghuaguji/wenjinyangji'
-    console.log('history.get 使用 FTP 基础路径:', ftpBasePath)
 
     // 合并数据库记录与 FTP 文件列表：
     // - 数据库有记录的文件用数据库信息（含 IP、上传时间等）
@@ -24,13 +38,20 @@ export default defineEventHandler(async (event) => {
     let merged = []
     let source = 'database'
 
-    // 1. 读取全部数据库记录（含搜索过滤）
+    // 1. 读取数据库记录（搜索/日期过滤下推到 SQL，减少内存处理量）
     try {
       const uploadHistoryRepository = await getUploadHistoryRepository()
 
       const where = {}
       if (search) {
         where.fileName = Like(`%${search}%`)
+      }
+      if (startDate && endDate) {
+        where.uploadTime = Between(new Date(startDate + 'T00:00:00'), new Date(endDate + 'T23:59:59.999'))
+      } else if (startDate) {
+        where.uploadTime = MoreThanOrEqual(new Date(startDate + 'T00:00:00'))
+      } else if (endDate) {
+        where.uploadTime = LessThanOrEqual(new Date(endDate + 'T23:59:59.999'))
       }
 
       const data = await uploadHistoryRepository.find({
@@ -60,41 +81,36 @@ export default defineEventHandler(async (event) => {
     const knownNames = new Set(merged.map(item => item.fileName))
     const searchLower = search.toLowerCase()
 
-    // 2. 读取 FTP 文件列表，补充数据库中没有的文件
+    // 2. 读取 FTP 文件列表（带缓存），补充数据库中没有的文件
     try {
-      const client = await createFtpClient()
-      try {
-        // createFtpClient 内部已切换到 ftpBasePath，直接 list() 即可
-        const fileList = await client.list()
+      const fileList = await getCachedFtpList()
 
-        for (const file of fileList) {
-          if (file.name === '.' || file.name === '..') continue
-          if (file.type === 2) continue // 跳过目录（basic-ftp: 2 = directory）
-          if (knownNames.has(file.name)) continue // 数据库已有，跳过
-          if (search && !file.name.toLowerCase().includes(searchLower)) continue // 搜索过滤
+      for (const file of fileList) {
+        if (file.name === '.' || file.name === '..') continue
+        if (file.type === 2) continue // 跳过目录（basic-ftp: 2 = directory）
+        if (knownNames.has(file.name)) continue // 数据库已有，跳过
+        if (search && !file.name.toLowerCase().includes(searchLower)) continue // 搜索过滤
 
-          merged.push({
-            id: `ftp_${file.name}`,
-            fileName: file.name,
-            fileSize: file.size,
-            fileSizeFormatted: formatFileSize(file.size),
-            fileType: file.type || 'application/octet-stream',
-            remotePath: `${ftpBasePath.replace(/\/$/, '')}/${file.name}`,
-            ipAddress: '-',
-            userAgent: '-',
-            uploadTime: file.modifyTime ? new Date(file.modifyTime).toISOString() : new Date().toISOString(),
-            source: 'ftp'
-          })
-        }
-      } finally {
-        client.close()
+        merged.push({
+          id: `ftp_${file.name}`,
+          fileName: file.name,
+          fileSize: file.size,
+          fileSizeFormatted: formatFileSize(file.size),
+          fileType: file.type || 'application/octet-stream',
+          remotePath: `${ftpBasePath.replace(/\/$/, '')}/${file.name}`,
+          ipAddress: '-',
+          userAgent: '-',
+          uploadTime: file.modifyTime ? new Date(file.modifyTime).toISOString() : new Date().toISOString(),
+          source: 'ftp'
+        })
       }
     } catch (ftpError) {
       console.error('FTP 文件列表读取失败:', ftpError)
       // FTP 读取失败不影响数据库记录的返回
     }
 
-    // 3. 应用筛选条件（文件类型分类 / 来源 / 上传时间范围）
+    // 3. 应用筛选条件（文件类型分类 / 来源）
+    // 上传时间范围对数据库记录已下推 SQL，这里对 FTP 补充记录仍需内存过滤
     if (fileCategory !== 'all') {
       merged = merged.filter(item => getFileCategory(item.fileName) === fileCategory)
     }
@@ -137,27 +153,3 @@ export default defineEventHandler(async (event) => {
     }
   }
 })
-
-// 根据文件名扩展名判断分类
-const FILE_CATEGORY_MAP = {
-  image: ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'],
-  document: ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.xml', '.json'],
-  archive: ['.zip', '.rar', '.7z'],
-  font: ['.ttf', '.otf', '.woff', '.woff2']
-}
-const getFileCategory = (filename) => {
-  const ext = ('.' + (filename.split('.').pop() || '')).toLowerCase()
-  for (const [category, extensions] of Object.entries(FILE_CATEGORY_MAP)) {
-    if (extensions.includes(ext)) return category
-  }
-  return 'other'
-}
-
-// 格式化文件大小
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
-}

@@ -1,4 +1,5 @@
 import path from 'path'
+import { withFtpClient } from '~/server/utils/ftp.js'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -18,9 +19,7 @@ export default defineEventHandler(async (event) => {
       throw new Error('文件名包含非法字符')
     }
 
-    const client = await createFtpClient()
-
-    try {
+    const newPath = await withFtpClient(async (client) => {
       // 获取目录路径
       const dirPath = path.dirname(oldPath)
       const newPath = dirPath === '.' ? newName.trim() : `${dirPath}/${newName.trim()}`
@@ -30,16 +29,13 @@ export default defineEventHandler(async (event) => {
       // 执行重命名
       await client.rename(oldPath, newPath)
 
-      return {
-        success: true,
-        newPath,
-        message: '重命名成功'
-      }
-    } catch (ftpError) {
-      console.error('FTP 重命名失败:', ftpError)
-      throw new Error(`重命名失败: ${ftpError.message}`)
-    } finally {
-      client.close()
+      return newPath
+    })
+
+    return {
+      success: true,
+      newPath,
+      message: '重命名成功'
     }
   } catch (error) {
     console.error('重命名操作失败:', error)

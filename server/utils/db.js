@@ -20,13 +20,8 @@ const initializeDataSource = async () => {
   return AppDataSource
 }
 
-// 优雅关闭
-process.on('beforeExit', async () => {
-  if (isInitialized && AppDataSource.isInitialized) {
-    await AppDataSource.destroy()
-    console.log('TypeORM 连接已关闭')
-  }
-})
+// 说明：连接随进程生命周期存续，不做显式 destroy；
+// Nitro 服务器常驻事件循环，process.on('beforeExit') 不会被触发
 
 // 导出初始化函数和仓库获取器
 export const getDataSource = async () => {

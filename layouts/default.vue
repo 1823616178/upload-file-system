@@ -45,19 +45,12 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router';
-
 const router = useRouter();
 
 const logout = async () => {
   await fetch('/api/logout', { method: 'POST' });
   router.push('/login');
 };
-
-// Nuxt 布局组件，使用 NuxtLink 进行路由导航
-definePageMeta({
-  layout: 'default'
-})
 </script>
 
 <style lang="scss" scoped>

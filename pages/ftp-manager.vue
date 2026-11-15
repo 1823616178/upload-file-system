@@ -496,8 +496,6 @@ const loadDirectory = async () => {
       query: { path: currentPath.value }
     })
     if (response.success) {
-      // 调试日志
-      console.log('FTP 返回的文件列表:', response.data.files)
       files.value = response.data.files
     } else {
       toast.error(response.error || '加载目录失败')
@@ -659,54 +657,46 @@ const previewModal = ref({
   fileName: '',
   url: '',
   content: '',
-  type: 'image', // 'image' or 'xml'
+  type: 'image', // 'image' | 'xml' | 'pdf'
   loading: false,
   file: null
 })
 
 const previewFile = async (file) => {
-  console.log('预览文件:', file.name, '路径:', file.fullPath)
-  
   const fileType = isXml(file.name) ? 'xml' : (isPdf(file.name) ? 'pdf' : 'image')
-  
+
   previewModal.value = {
     show: true,
     fileName: file.name,
     url: '',
     content: '',
     type: fileType,
-    loading: true,
+    loading: fileType === 'xml', // 只有 XML 需要拉取文本内容
     file
   }
+
+  // 图片/PDF 直接走二进制接口（浏览器流式加载，避免 base64 塞进内存）
+  if (fileType !== 'xml') {
+    previewModal.value.url = `/api/ftp-image?path=${encodeURIComponent(file.fullPath)}`
+    return
+  }
+
   try {
     const response = await $fetch('/api/ftp-file', {
       query: { path: file.fullPath }
     })
-    
-    console.log('FTP 文件响应:', response)
-    
-    if (response.success) {
-      if (fileType === 'xml' && response.data.base64) {
-        // 正确解码 base64 为 UTF-8 文本
-        const binaryString = atob(response.data.base64)
-        const bytes = new Uint8Array(binaryString.length)
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i)
-        }
-        const decoder = new TextDecoder('utf-8')
-        const xmlText = decoder.decode(bytes)
-        previewModal.value.content = xmlText
-      } else if (response.data.previewUrl) {
-        previewModal.value.url = response.data.previewUrl
-      } else {
-        const errorMsg = response.error || '无法预览该文件'
-        console.error('预览失败:', errorMsg)
-        toast.error(errorMsg)
-        previewModal.value.show = false
+
+    if (response.success && response.data.base64) {
+      // 正确解码 base64 为 UTF-8 文本
+      const binaryString = atob(response.data.base64)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
       }
+      const decoder = new TextDecoder('utf-8')
+      previewModal.value.content = decoder.decode(bytes)
     } else {
       const errorMsg = response.error || '无法预览该文件'
-      console.error('预览失败:', errorMsg)
       toast.error(errorMsg)
       previewModal.value.show = false
     }

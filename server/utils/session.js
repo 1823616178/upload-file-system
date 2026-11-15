@@ -24,3 +24,12 @@ export const validateSession = (token) => {
 export const destroySession = (token) => {
   if (token) sessions.delete(token)
 }
+
+// 定期清扫过期会话：validateSession 只在命中时惰性清理，
+// 未再次访问的过期项会一直驻留内存，这里每 6 小时统一清一次
+setInterval(() => {
+  const now = Date.now()
+  for (const [token, session] of sessions) {
+    if (session.expiresAt < now) sessions.delete(token)
+  }
+}, 6 * 60 * 60 * 1000).unref()

@@ -377,29 +377,17 @@ const formatDate = (dateString) => {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
-// 解析 IP 地址
+// 解析 IP 归属：不再调用外部 ip-api（http 接口在 https 生产环境会因 mixed content 失败，
+// 且串行请求拖慢页面），仅本地标记内网/外网
 const resolveIpLocations = async (list) => {
-    const ips = [...new Set(list.map(item => item.ipAddress).filter(ip => ip && ip !== '-' && !locations.value[ip]))]
+    const ips = [...new Set(list.map(item => item.ipAddress).filter(ip => ip && ip !== '-'))]
 
     for (const ip of ips) {
         // 简单过滤内网 IP
         if (ip.startsWith('192.168.') || ip.startsWith('127.') || ip.startsWith('10.')) {
             locations.value[ip] = '内网IP'
-            continue
-        }
-
-        try {
-            // 使用免费的 ip-api.com (注意：该 API 为 http，https 站点可能受限，但在本地/开发环境通常可用)
-            // 如果是生产环境 https，建议后端代理或使用支持 https 的服务
-            const res = await fetch(`http://ip-api.com/json/${ip}?lang=zh-CN`)
-            const data = await res.json()
-            if (data.status === 'success') {
-                locations.value[ip] = `${data.regionName} ${data.city}`
-            } else {
-                locations.value[ip] = '未知位置'
-            }
-        } catch (e) {
-            console.warn(`无法解析 IP ${ip}`, e)
+        } else {
+            locations.value[ip] = '外网IP'
         }
     }
 }

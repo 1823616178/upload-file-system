@@ -1,8 +1,9 @@
 import { getCookie, sendRedirect } from 'h3';
 import { validateSession } from '../utils/session';
 
-// 无需登录即可访问的 API（登录、登出、健康检查、公开图片预览）
-const PUBLIC_API_PATHS = ['/api/login', '/api/logout', '/api/health', '/api/ftp-image', '/api/ftp-thumbnail'];
+// 无需登录即可访问的 API（登录、登出、健康检查）
+// 图片/缩略图接口需要登录：同站 <img> 请求会自动携带 cookie，收紧后不影响页面展示
+const PUBLIC_API_PATHS = ['/api/login', '/api/logout', '/api/health'];
 
 export default defineEventHandler((event) => {
   const url = event.req.url || '';

@@ -123,7 +123,6 @@ const uploadProgress = ref(0)
 const fileList = ref([]) // Renamed from uploadedFiles
 const message = ref('')
 const messageClass = ref('')
-const targetFolder = ref('')
 
 // 计算是否有待上传的文件
 const hasPendingFiles = computed(() => {
@@ -164,22 +163,11 @@ const addFiles = (files) => {
     const newFiles = []
 
     for (const file of fileArray) {
-        // 客户端验证文件类型
-        const validTypes = [
-            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml',
-            'application/pdf',
-            'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'text/plain', 'text/xml', 'application/xml', 'application/json',
-            'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
-            'application/font-sfnt', 'application/x-font-ttf', 'font/ttf', 'font/otf',
-            'application/font-woff', 'font/woff', 'application/font-woff2', 'font/woff2'
-        ]
+        // 客户端验证文件类型（与服务端 /api/upload 的白名单保持一致）
         const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.xml', '.json', '.zip', '.rar', '.7z', '.ttf', '.otf', '.woff', '.woff2']
         const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
 
-        if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
+        if (!fileExtension || !validExtensions.includes(fileExtension)) {
             toast.warning(`文件 ${file.name} 格式不支持`)
             continue
         }
@@ -222,16 +210,6 @@ const startUpload = async () => {
     uploadProgress.value = 0
     message.value = ''
 
-    // 确定远程路径
-    const basePath = '/static/zhonghuaguji/wenjinyangji'
-    let remotePath = basePath
-    if (targetFolder.value && targetFolder.value.trim()) {
-        const subFolder = targetFolder.value.trim().replace(/^\/+|\/+$/g, '')
-        if (subFolder) {
-            remotePath = `${basePath}/${subFolder}`
-        }
-    }
-
     let successCount = 0
     let totalProcessed = 0
     const totalToUpload = pendingFiles.length
@@ -248,7 +226,6 @@ const startUpload = async () => {
         try {
             const formData = new FormData()
             formData.append('file', fileItem.fileObject)
-            formData.append('remotePath', remotePath)
 
             const response = await $fetch('/api/upload', {
                 method: 'POST',
@@ -373,56 +350,6 @@ const copyPath = async (path) => {
 
 <style scoped lang="scss">
 @use '~/assets/styles/upload.scss';
-
-// 文件夹输入框样式
-.folder-input-group {
-    margin-bottom: 24px;
-
-    .folder-label {
-        display: block;
-        color: #ffffff;
-        font-size: 14px;
-        margin-bottom: 8px;
-        font-weight: 500;
-    }
-
-    .input-wrapper {
-        position: relative;
-        display: flex;
-        align-items: center;
-    }
-
-    .folder-icon {
-        position: absolute;
-        left: 14px;
-        width: 20px;
-        height: 20px;
-        color: #00d4ff;
-        pointer-events: none;
-    }
-
-    .folder-input {
-        width: 100%;
-        padding: 12px 15px 12px 45px;
-        background: rgba(10, 10, 26, 0.4);
-        border: 1px solid rgba(0, 212, 255, 0.3);
-        border-radius: 8px;
-        color: #ffffff;
-        font-size: 15px;
-        outline: none;
-        transition: all 0.3s ease;
-
-        &:focus {
-            border-color: #00d4ff;
-            background: rgba(10, 10, 26, 0.6);
-            box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
-        }
-
-        &::placeholder {
-            color: rgba(255, 255, 255, 0.4);
-        }
-    }
-}
 
 // 开始上传按钮
 .action-bar {

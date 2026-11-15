@@ -1,36 +1,32 @@
-# 文件上传中心 - 使用 Prisma
+# 文件上传中心
 
 ## 📋 项目简介
 
-基于 Nuxt 4 + Prisma 的文件上传系统，支持通过 FTP 协议上传图片文件到服务器，并将上传历史记录存储到 MySQL 数据库。
+基于 Nuxt 4 + TypeORM 的文件上传系统，支持通过 FTP 协议上传图片文件到服务器，并将上传历史记录存储到 MySQL 数据库。
 
 ## ✨ 功能特性
 
 - ✅ 图片文件上传（支持 jpg, png, gif, webp, bmp, svg）
 - ✅ 文件大小限制（最大 100MB）
 - ✅ FTP 传输到远程服务器
-- ✅ 上传历史记录（使用 Prisma + MySQL）
+- ✅ 上传历史记录（使用 TypeORM + MySQL）
 - ✅ 历史记录搜索和分页
 - ✅ 科技感 UI 设计
 - ✅ 响应式布局
 
 ## 🗄️ 数据库配置
 
-使用 Prisma ORM 管理 MySQL 数据库：
+使用 TypeORM 管理 MySQL 数据库。数据库连接信息通过环境变量（`.env`）配置，参考 `.env.example`：
 
-### 数据库连接信息
+| 环境变量 | 说明 |
+|------|------|
+| `NUXT_DB_HOST` / `NUXT_DB_PORT` | 数据库地址与端口 |
+| `NUXT_DB_USER` / `NUXT_DB_PASSWORD` | 数据库账号 |
+| `NUXT_DB_NAME` | 数据库名 |
 
-```
-Host: 192.168.1.111
-Port: 53306
-User: hanvon
-Password: hanvon123
-Database: hanvon_tools_database
-```
+### 数据表
 
-### Prisma Schema
-
-表结构定义在 `prisma/schema.prisma` 文件中。
+表结构定义在 `server/entities/` 下的 TypeORM 实体中（`users`、`upload_history`）。
 
 ## 🚀 快速开始
 
@@ -39,33 +35,29 @@ Database: hanvon_tools_database
 #### 1. 安装依赖
 
 ```bash
-yarn install
+npm install
 ```
 
 #### 2. 配置环境变量
 
-已在 `.env` 文件中配置好数据库连接信息：
-
-```env
-# 数据库配置在 server/data-source.ts 中通过环境变量配置
-```
+复制 `.env.example` 为 `.env`，并填写数据库与 FTP 连接信息（数据库配置在 `server/data-source.ts` 中读取）。种子数据需额外设置 `SEED_USERNAME` / `SEED_PASSWORD`。
 
 #### 3. 运行数据库迁移
 
 ```bash
-yarn typeorm:migration:run
+npm run typeorm:migration:run
 ```
 
 #### 4. 运行种子数据（如果需要）
 
 ```bash
-yarn typeorm:seed
+npm run typeorm:seed
 ```
 
 #### 5. 启动开发服务器
 
 ```bash
-yarn dev
+npm run dev
 ```
 
 访问：http://localhost:3000
@@ -100,10 +92,10 @@ docker-compose logs -f hanvonfile
 docker-compose exec hanvonfile sh
 
 # 运行数据库迁移（如果表结构需要更新）
-yarn typeorm:migration:run
+npm run typeorm:migration:run
 
 # 运行种子数据（如果需要）
-yarn typeorm:seed
+npm run typeorm:seed
 ```
 
 #### 4. 停止服务
@@ -239,20 +231,20 @@ uploadFileToServer/
 - **路由**: Nuxt Pages
 - **样式**: SCSS
 - **数据库**: MySQL
-- **ORM**: TypeORM
+
 - **文件传输**: basic-ftp
 
 ## 📝 TypeORM 常用命令
 
 ```bash
 # 生成实体和迁移
-yarn typeorm:migration:generate MigrationName
+npm run typeorm:migration:generate MigrationName
 
 # 运行迁移
-yarn typeorm:migration:run
+npm run typeorm:migration:run
 
 # 运行种子数据
-yarn typeorm:seed
+npm run typeorm:seed
 ```
 
 ## 🎨 页面说明
