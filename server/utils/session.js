@@ -2,11 +2,12 @@ import crypto from 'crypto'
 
 // 简单的内存 session store（单实例场景够用；重启进程会使所有会话失效）
 const sessions = new Map() // token -> { username, expiresAt }
-const SESSION_TTL = 7 * 24 * 60 * 60 * 1000 // 7 天
+export const SESSION_TTL_PERSISTENT = 7 * 24 * 60 * 60 * 1000 // 记住我：7 天
+export const SESSION_TTL_STANDARD = 24 * 60 * 60 * 1000 // 普通会话：24 小时
 
-export const createSession = (username) => {
+export const createSession = (username, ttlMs = SESSION_TTL_PERSISTENT) => {
   const token = crypto.randomBytes(32).toString('hex')
-  sessions.set(token, { username, expiresAt: Date.now() + SESSION_TTL })
+  sessions.set(token, { username, expiresAt: Date.now() + ttlMs })
   return token
 }
 

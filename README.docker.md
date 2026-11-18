@@ -3,160 +3,79 @@
 ## 环境要求
 
 - Docker 20.10+
-- Docker Compose 1.29+
+- Docker Compose v2+
 - Node.js 22+
 
 ## 快速开始
 
-### 1. 构建并启动服务
+### 1. 准备环境变量
+
+复制 `.env.example` 为 `.env` 并填写实际的 FTP、MySQL 与对外接口密钥：
 
 ```bash
-# 构建镜像并启动应用服务
-docker-compose up -d --build
-
-# 查看服务状态
-docker-compose ps
-
-# 查看日志
-docker-compose logs -f hanvonfile
+cp .env.example .env
 ```
 
-> **注意**：容器名称为 `hanvonfile`，端口映射为 3000:3000，所有环境变量都通过 `.env` 文件配置。
-
-### 2. 访问应用
-
-应用将在 `http://localhost:3000` 上运行
-
-### 3. 停止服务
-
-```bash
-# 停止所有服务
-docker-compose down
-
-# 停止并删除数据卷（谨慎使用）
-docker-compose down -v
-```
-
-## 环境变量配置
-
-所有配置通过 `.env` 文件管理：
+环境变量说明：
 
 ```env
 # FTP 配置
-NUXT_FTP_HOST=192.168.1.166
-NUXT_FTP_USER=userftp
-NUXT_FTP_PASSWORD=550312171
+NUXT_FTP_HOST=<your-ftp-host>
+NUXT_FTP_USER=<your-ftp-user>
+NUXT_FTP_PASSWORD=<your-ftp-password>
 NUXT_FTP_PORT=21
 NUXT_FTP_SECURE=false
 NUXT_FTP_BASE_PATH=/static/zhonghuaguji/wenjinyangji
 
-# SSH 配置
-NUXT_SSH_POWER_PASSWORD=Henkaku@1
-NUXT_SSH_HOST=192.168.1.166
-NUXT_SSH_USER=userftp
-NUXT_SSH_PASSWORD=550312171
-NUXT_SSH_PORT=22
-
 # 数据库配置
-NUXT_DB_HOST=mysql
+NUXT_DB_HOST=<your-db-host>
 NUXT_DB_PORT=3306
-NUXT_DB_USER=hanvon
-NUXT_DB_PASSWORD=hanvon123
+NUXT_DB_USER=<your-db-user>
+NUXT_DB_PASSWORD=<your-db-password>
 NUXT_DB_NAME=hanvon_tools_database
+
+# 对外开放接口密钥（可选，多个使用逗号分隔）
+NUXT_API_KEYS=client1:<your-api-key>
 ```
 
-## 目录结构
+### 2. 构建并启动服务
 
+```bash
+# 构建镜像并启动应用服务
+docker compose up -d --build
+
+# 查看服务状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f hanvonfile
 ```
-.
-├── docker-compose.yml    # Docker Compose 配置
-├── Dockerfile           # 应用 Docker 镜像构建文件
-├── .dockerignore        # Docker 构建忽略文件
-└── .env                 # 环境变量配置
+
+应用将在 `http://localhost:3000` 上运行，并内置 `/api/health` 健康检查。
+
+### 3. 停止服务
+
+```bash
+docker compose down
 ```
 
-## 数据持久化
+## 初始化数据库与用户
 
-- 文件通过 FTP 存储在远程服务器上
-- 数据库使用现有的 MySQL 服务（192.168.1.111:53306）
-
-## 数据库迁移
-
-由于使用现有数据库，首次运行前请确保：
-
-1. 数据库服务（192.168.1.111:53306）可访问
-2. 数据库用户 hanvon 有相应权限
-3. hanvon_tools_database 数据库已存在
-
-如果需要初始化表结构：
+若目标数据库尚未建立表结构或管理员账号：
 
 ```bash
 # 进入应用容器
 docker compose exec hanvonfile sh
 
-# 运行数据库迁移
+# 运行数据库迁移（按需）
 npm run typeorm:migration:run
 
-# 运行种子数据（如果需要）
-npm run typeorm:seed
+# 创建/更新管理员账号（需传入 SEED_PASSWORD）
+SEED_USERNAME=hccloud SEED_PASSWORD='<strong-password>' npm run typeorm:seed
 ```
 
-## 故障排除
+## 生产环境建议
 
-### 查看日志
-
-```bash
-# 查看所有服务日志
-docker compose logs
-
-# 查看特定服务日志
-docker compose logs hanvonfile
-```
-
-### 重建服务
-
-```bash
-# 重新构建并启动
-docker compose up -d --build --force-recreate
-```
-
-### 数据库连接问题
-
-如果遇到数据库连接问题，检查：
-1. MySQL 服务是否正常运行
-2. 数据库配置是否正确
-3. 网络连接是否正常
-
-### 权限问题
-
-如果遇到权限问题：
-```bash
-# 在容器中修复权限
-docker compose exec hanvonfile chown -R nextjs:nodejs /app/.output
-```
-
-## 生产环境部署
-
-对于生产环境，建议：
-
-1. 使用反向代理（如 Nginx）
-2. 配置 SSL 证书
-3. 设置适当的资源限制
-4. 启用日志轮转
-5. 定期备份数据库
-
-### 生产环境 docker-compose.override.yml
-
-```yaml
-version: '3.8'
-
-services:
-  app:
-    restart: always
-    environment:
-      - NODE_ENV=production
-    
-  mysql:
-    restart: always
-    volumes:
-      - /host/path/mysql_data:/var/lib/mysql
+1. 使用反向代理（如 Nginx / Caddy）开启 HTTPS 终止与请求体大小限制（`client_max_body_size 110m;`）
+2. 妥善保管 `.env` 与 `NUXT_API_KEYS`，不要将 `.env` 提交到版本控制
+3. 配置资源限制与定期数据库备份

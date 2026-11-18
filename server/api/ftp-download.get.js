@@ -1,36 +1,34 @@
-import { Writable } from 'stream'
-import { withFtpClient } from '~/server/utils/ftp.js'
-import { getMimeType } from '~/server/utils/file-info.js'
+import path from 'path'
+import { createError, getQuery } from 'h3'
+import { resolveSafeFtpPath, streamFtpFile } from '~/server/utils/ftp.js'
+import { getExtension, getMimeType } from '~/server/utils/file-info.js'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
-  const remotePath = query.path
+  const rawPath = query.path
 
-  if (!remotePath) {
+  if (!rawPath) {
     throw createError({
       statusCode: 400,
-      statusMessage: '缺少文件路径参数',
-      message: '缺少文件路径参数',
+      message: '缺少文件路径参数'
     })
   }
 
-  const fileName = remotePath.split('/').pop()
-  const buffer = await withFtpClient(async (client) => {
-    const chunks = []
-    const writable = new Writable({
-      write(chunk, encoding, callback) {
-        chunks.push(Buffer.from(chunk))
-        callback()
-      }
-    })
+  const safePath = resolveSafeFtpPath(rawPath, { allowRoot: false })
+  const fileName = path.posix.basename(safePath)
+  const mimeType = getMimeType(fileName)
+  const isInline = query.inline === 'true'
+  const extraHeaders = {
+    'X-Content-Type-Options': 'nosniff'
+  }
+  if (isInline && getExtension(fileName) === '.svg') {
+    extraHeaders['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+  }
 
-    await client.downloadTo(writable, remotePath)
-    return Buffer.concat(chunks)
+  await streamFtpFile(event, safePath, {
+    contentType: mimeType,
+    disposition: isInline ? 'inline' : 'attachment',
+    filename: fileName,
+    extraHeaders
   })
-
-  setHeader(event, 'Content-Type', getMimeType(fileName))
-  setHeader(event, 'Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`)
-  setHeader(event, 'Content-Length', buffer.length)
-
-  return buffer
 })

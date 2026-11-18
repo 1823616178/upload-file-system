@@ -1,24 +1,19 @@
-import { withFtpClient } from '~/server/utils/ftp.js'
+import { readBody } from 'h3'
+import { deleteFtpEntry } from '~/server/utils/ftp-operations.js'
 
 export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event)
-    const { path, isDirectory } = body
+    const { path, isDirectory } = body || {}
 
     if (!path) {
       throw new Error('缺少文件路径参数')
     }
 
-    await withFtpClient(async (client) => {
-      if (isDirectory) {
-        // 递归删除目录
-        await client.removeDir(path)
-        console.log(`FTP 删除目录成功: ${path}`)
-      } else {
-        // 删除文件
-        await client.remove(path)
-        console.log(`FTP 删除文件成功: ${path}`)
-      }
+    await deleteFtpEntry({
+      targetPath: path,
+      isDirectory: Boolean(isDirectory),
+      ignoreNotFound: false
     })
 
     return {
@@ -29,7 +24,7 @@ export default defineEventHandler(async (event) => {
     console.error('删除操作失败:', error)
     return {
       success: false,
-      error: error.message || '删除失败'
+      error: error.statusMessage || error.message || '删除失败'
     }
   }
 })

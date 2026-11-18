@@ -1,22 +1,7 @@
 import 'reflect-metadata'
-import { DataSource } from 'typeorm'
-import { UploadHistory } from './entities/UploadHistory'
-import { User } from './entities/User'
 import * as crypto from 'crypto'
-
-const AppDataSource = new DataSource({
-  type: 'mysql',
-  host: process.env.NUXT_DB_HOST || process.env.DB_HOST || 'mysql',
-  port: parseInt(process.env.NUXT_DB_PORT || process.env.DB_PORT || '3306'),
-  username: process.env.NUXT_DB_USER || process.env.DB_USER || 'hanvon',
-  password: process.env.NUXT_DB_PASSWORD || process.env.DB_PASSWORD || 'hanvon123',
-  database: process.env.NUXT_DB_NAME || process.env.DB_NAME || 'hanvon_tools_database',
-  entities: [UploadHistory, User],
-  synchronize: false,
-  logging: ['error', 'warn'],
-  charset: 'utf8mb4',
-  timezone: '+08:00',
-})
+import { AppDataSource } from './data-source'
+import { User } from './entities/User'
 
 function hashPassword(password: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -29,8 +14,8 @@ function hashPassword(password: string): Promise<string> {
 }
 
 async function main() {
-  const seedUsername = process.env.SEED_USERNAME || 'hccloud'
-  const seedPassword = process.env.SEED_PASSWORD
+  const seedUsername = (process.env.SEED_USERNAME || 'hccloud').trim() || 'hccloud'
+  const seedPassword = process.env.SEED_PASSWORD?.trim()
 
   if (!seedPassword) {
     throw new Error('缺少 SEED_PASSWORD 环境变量（拒绝使用内置默认口令）')

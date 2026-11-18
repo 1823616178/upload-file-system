@@ -1,4 +1,5 @@
 import path from 'path'
+import { createError } from 'h3'
 
 // 服务端共享的文件类型 / MIME / 大小格式化工具（此前在多个 API 中重复且不同步）
 
@@ -72,8 +73,17 @@ const MIME_BY_EXTENSION = {
 
 export const getExtension = (filename) => path.extname(filename || '').toLowerCase()
 
+// 最大上传文件大小 100MB
+export const MAX_UPLOAD_SIZE = 100 * 1024 * 1024
+
 // 图片扩展名（不含点，供缩略图/预览判断）
 export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg']
+
+// 支持在线预览的文本类扩展名
+export const TEXT_PREVIEW_EXTENSIONS = ['.xml', '.json', '.txt']
+
+// 支持在线预览的 PDF 扩展名
+export const PDF_EXTENSIONS = ['.pdf']
 
 // 根据文件名扩展名获取 MIME 类型
 export const getMimeType = (filename) => {
@@ -84,6 +94,36 @@ export const getMimeType = (filename) => {
 export const isAllowedUploadFile = (filename, mimeType) => {
   return ALLOWED_EXTENSIONS.includes(getExtension(filename)) ||
     ALLOWED_MIME_TYPES.includes(mimeType?.toLowerCase())
+}
+
+// 清洗上传文件名（去掉路径前缀及非法字符，防止目录穿越）
+export const sanitizeFilename = (filename) => {
+  const base = path.posix.basename(String(filename || '').replace(/\\/g, '/'))
+  const cleaned = base.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim()
+  if (!cleaned || cleaned === '.' || cleaned === '..') {
+    return 'uploaded_file'
+  }
+  return cleaned
+}
+
+// 校验目录/文件重命名与新建目录名称
+export const validateEntryName = (name) => {
+  const trimmed = String(name || '').trim()
+  if (!trimmed) {
+    throw createError({ statusCode: 400, message: '名称不能为空' })
+  }
+  if (trimmed === '.' || trimmed === '..') {
+    throw createError({ statusCode: 400, message: '非法的名称' })
+  }
+  if (/[<>:"/\\|?*\x00-\x1f]/.test(trimmed)) {
+    throw createError({ statusCode: 400, message: '名称包含非法字符' })
+  }
+  return trimmed
+}
+
+// upload_history.file_type 列为 varchar(50)，截取安全长度避免 OOXML 等长 MIME 触发写入报错
+export const normalizeDbFileType = (mimeType) => {
+  return String(mimeType || 'application/octet-stream').slice(0, 50)
 }
 
 // 格式化文件大小

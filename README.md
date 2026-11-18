@@ -1,62 +1,51 @@
-# 文件上传中心
+# 汉王数字文件上传系统
 
 ## 📋 项目简介
 
-基于 Nuxt 4 + TypeORM 的文件上传系统，支持通过 FTP 协议上传图片文件到服务器，并将上传历史记录存储到 MySQL 数据库。
+基于 Nuxt 4 + TypeORM 的文件上传与远程资产管理系统，支持通过 FTP 协议安全上传与管理多类数字资产，并将上传记录持久化到 MySQL 数据库，同时提供面向外部系统集成的 `/api/v1` 开放接口。
 
 ## ✨ 功能特性
 
-- ✅ 图片文件上传（支持 jpg, png, gif, webp, bmp, svg）
-- ✅ 文件大小限制（最大 100MB）
-- ✅ FTP 传输到远程服务器
-- ✅ 上传历史记录（使用 TypeORM + MySQL）
-- ✅ 历史记录搜索和分页
-- ✅ 科技感 UI 设计
-- ✅ 响应式布局
+- **多格式文件上传**：支持图片（JPG/PNG/GIF/WebP/BMP/SVG）、文档（PDF/Office/TXT/XML/JSON）、压缩包（ZIP/RAR/7z）、字体（TTF/OTF/WOFF/WOFF2），单文件最大 100MB，支持实时字节级上传进度与队列管理
+- **高性能 FTP 连接池**：复用长连接、排队超时保护、列表短期缓存及自动失效，流式文件下载/预览避免内存溢出
+- **缩略图 LRU 缓存**：基于 `sharp` 自动生成缩略图并缓存，支持 WebP/PNG/JPEG 自适应编码与格式兜底
+- **上传历史管理**：融合数据库记录与 FTP 目录状态，支持关键字检索、分类/来源/日期过滤、多格式在线预览、重命名与联动删除
+- **FTP 可视化文件管理**：目录浏览、递归搜索、拖拽上传、新建目录、批量删除，桌面与移动端均完整适配
+- **安全加固**：路径沙箱防目录穿越、HttpOnly 会话鉴权、登录防爆破限流、SVG 沙箱防 XSS、Cookie 过期死循环防护
+- **对外开放接口（Open API v1）**：提供 `/api/v1/*` 标准化 REST 接口（API Key 鉴权 + 速率限制 + OpenAPI 3.0 规范），详见 [对外接口文档](docs/OPEN_API.md)
 
-## 🗄️ 数据库配置
+## 🗄️ 环境变量配置
 
-使用 TypeORM 管理 MySQL 数据库。数据库连接信息通过环境变量（`.env`）配置，参考 `.env.example`：
+复制 `.env.example` 为 `.env` 并填写配置：
 
 | 环境变量 | 说明 |
 |------|------|
-| `NUXT_DB_HOST` / `NUXT_DB_PORT` | 数据库地址与端口 |
-| `NUXT_DB_USER` / `NUXT_DB_PASSWORD` | 数据库账号 |
-| `NUXT_DB_NAME` | 数据库名 |
-
-### 数据表
-
-表结构定义在 `server/entities/` 下的 TypeORM 实体中（`users`、`upload_history`）。
+| `NUXT_FTP_HOST` / `NUXT_FTP_PORT` | FTP 服务器地址与端口（默认 `21`） |
+| `NUXT_FTP_USER` / `NUXT_FTP_PASSWORD` | FTP 登录账号与密码 |
+| `NUXT_FTP_SECURE` | 是否启用 FTPS（`true` / `false`） |
+| `NUXT_FTP_BASE_PATH` | FTP 基准目录（默认 `/static/zhonghuaguji/wenjinyangji`） |
+| `NUXT_DB_HOST` / `NUXT_DB_PORT` | MySQL 地址与端口 |
+| `NUXT_DB_USER` / `NUXT_DB_PASSWORD` | MySQL 账号与密码 |
+| `NUXT_DB_NAME` | 数据库名称 |
+| `NUXT_API_KEYS` | 对外接口访问密钥（逗号分隔，支持 `名称:密钥` 格式） |
+| `SEED_USERNAME` / `SEED_PASSWORD` | 初始化管理员账号与密码（执行 `typeorm:seed` 时必填） |
 
 ## 🚀 快速开始
 
 ### 本地开发模式
 
-#### 1. 安装依赖
-
 ```bash
-npm install
-```
+# 1. 安装依赖
+npm ci
 
-#### 2. 配置环境变量
+# 2. 配置环境变量
+cp .env.example .env
 
-复制 `.env.example` 为 `.env`，并填写数据库与 FTP 连接信息（数据库配置在 `server/data-source.ts` 中读取）。种子数据需额外设置 `SEED_USERNAME` / `SEED_PASSWORD`。
-
-#### 3. 运行数据库迁移
-
-```bash
+# 3. 运行数据库迁移与种子用户（按需）
 npm run typeorm:migration:run
-```
-
-#### 4. 运行种子数据（如果需要）
-
-```bash
 npm run typeorm:seed
-```
 
-#### 5. 启动开发服务器
-
-```bash
+# 4. 启动开发服务器
 npm run dev
 ```
 
@@ -64,217 +53,37 @@ npm run dev
 
 ### Docker 部署模式
 
-#### 1. 使用 Docker Compose 启动
-
 ```bash
-# 构建并启动应用服务
-docker-compose up -d --build
-
-# 查看服务状态
-docker-compose ps
-
-# 查看日志
-docker-compose logs -f hanvonfile
+docker compose up -d --build
+docker compose ps
+docker compose logs -f hanvonfile
 ```
 
-> **注意**：容器名称为 `hanvonfile`，端口映射为 3000:3000，所有配置都通过 `.env` 文件管理，包括数据库连接和 FTP 配置。
-
-#### 2. 访问应用
-
-应用将在 `http://localhost:3000` 上运行
-
-#### 3. 初始化数据库（如果需要）
-
-由于使用现有数据库，请确保数据库服务（192.168.1.111:53306）可访问：
-
-```bash
-# 进入应用容器
-docker-compose exec hanvonfile sh
-
-# 运行数据库迁移（如果表结构需要更新）
-npm run typeorm:migration:run
-
-# 运行种子数据（如果需要）
-npm run typeorm:seed
-```
-
-#### 4. 停止服务
-
-```bash
-# 停止所有服务
-docker-compose down
-
-# 停止并删除数据卷（谨慎使用）
-docker-compose down -v
-```
-
-更多 Docker 部署详情请查看 [README.docker.md](README.docker.md)
+更多 Docker 部署细节请查看 [README.docker.md](README.docker.md)。
 
 ## 📁 项目结构
 
 ```
-uploadFileToServer/
+upload-file-system/
 ├── app.vue                      # 应用根组件
-├── assets/
-│   └── styles/                 # 样式文件
-│       ├── app.scss             # 全局样式
-│       ├── home.scss            # 首页样式
-│       ├── upload.scss          # 上传页样式
-│       └── history.scss        # 历史记录样式
-├── layouts/
-│   └── default.vue             # 默认布局
-├── pages/
-│   ├── index.vue              # 首页
-│   ├── uploadFile.vue         # 文件上传页
-│   └── history.vue           # 历史记录页
+├── assets/styles/               # 页面与全局 SCSS 样式
+├── components/                  # 粒子背景、加载器等公共组件
+├── docs/OPEN_API.md             # 对外开放接口（/api/v1）文档
+├── layouts/                     # default / auth 布局
+├── middleware/auth.global.ts    # 前端路由登录守卫
+├── pages/                       # 首页、登录、上传、历史记录、FTP 管理
 ├── server/
-│   ├── api/                   # API 接口
-│   ├── entities/             # 数据库实体
-│   ├── middleware/           # 中间件
-│   ├── plugins/              # 插件
-│   ├── utils/                # 工具函数
-│   ├── data-source.ts        # 数据库配置
-│   └── seed.ts               # 种子数据
-├── Dockerfile               # Docker 镜像构建文件
-├── docker-compose.yml      # Docker Compose 配置
-├── .dockerignore           # Docker 构建忽略文件
-├── README.docker.md        # Docker 部署详细说明
-└── package.json
+│   ├── api/                     # 内部 Web 接口及 /api/v1 对外接口
+│   ├── entities/                # TypeORM 实体（User / UploadHistory）
+│   ├── middleware/auth.js       # 服务端 Cookie 与 API Key 鉴权中间件
+│   ├── utils/                   # FTP 连接池、文件工具、缓存、限流、鉴权
+│   ├── data-source.ts           # TypeORM 数据源配置
+│   └── seed.ts                  # 初始化用户脚本
+├── utils/                       # 前端文件校验、格式化、剪贴板、HTTP 与 Toast 工具
+├── Dockerfile
+├── docker-compose.yml
+└── nuxt.config.ts
 ```
-
-## 🔌 API 接口
-
-### 1. 上传文件
-
-- **接口**: `POST /api/upload`
-- **Content-Type**: `multipart/form-data`
-- **参数**:
-  - `file`: 文件（必填）
-  - `remotePath`: 远程路径（选填，默认 `/static/wenjinyangyi`）
-- **响应**:
-```json
-{
-  "success": true,
-  "message": "文件上传成功",
-  "fileName": "example.jpg",
-  "remotePath": "/static/wenjinyangyi/example.jpg",
-  "fileSize": 1024000,
-  "fileSizeFormatted": "1.00 MB",
-  "recordId": "1",
-  "uploadTime": "2026-01-13T10:00:00.000Z"
-}
-```
-
-### 2. 获取历史记录
-
-- **接口**: `GET /api/history`
-- **参数**:
-  - `page`: 页码（默认 1）
-  - `pageSize`: 每页条数（默认 10）
-  - `search`: 搜索关键词（选填）
-- **响应**:
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "1",
-      "fileName": "example.jpg",
-      "fileSize": 1024000,
-      "fileSizeFormatted": "1.00 MB",
-      "fileType": "image/jpeg",
-      "remotePath": "/static/wenjinyangyi/example.jpg",
-      "uploadTime": "2026-01-13T10:00:00.000Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "pageSize": 10,
-    "total": 100,
-    "totalPages": 10
-  }
-}
-```
-
-### 3. 删除历史记录
-
-- **接口**: `DELETE /api/history`
-- **参数**:
-  - `id`: 记录 ID
-- **响应**:
-```json
-{
-  "success": true,
-  "message": "记录删除成功"
-}
-```
-
-## 🗄️ 数据库表
-
-### upload_history
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 主键，自增 |
-| fileName | VARCHAR(255) | 文件名 |
-| fileSize | BIGINT | 文件大小（字节） |
-| fileType | VARCHAR(50) | MIME 类型 |
-| remotePath | VARCHAR(500) | FTP 远程路径 |
-| uploadTime | DATETIME | 上传时间 |
-| createdAt | DATETIME | 创建时间 |
-| updatedAt | DATETIME | 更新时间 |
-
-## 🛠️ 技术栈
-
-- **前端框架**: Nuxt 4 + Vue 3
-- **运行环境**: Node.js 24
-- **路由**: Nuxt Pages
-- **样式**: SCSS
-- **数据库**: MySQL
-
-- **文件传输**: basic-ftp
-
-## 📝 TypeORM 常用命令
-
-```bash
-# 生成实体和迁移
-npm run typeorm:migration:generate MigrationName
-
-# 运行迁移
-npm run typeorm:migration:run
-
-# 运行种子数据
-npm run typeorm:seed
-```
-
-## 🎨 页面说明
-
-### 首页 (/)
-- 项目介绍
-- 功能特性展示
-- 快速导航
-
-### 上传页 (/uploadFile)
-- 拖拽上传
-- 多文件支持
-- 文件验证
-- 上传进度
-- 查看上传结果
-
-### 历史记录页 (/history)
-- 上传历史列表
-- 搜索功能
-- 分页浏览
-- 复制路径
-- 删除记录
-
-## ⚠️ 注意事项
-
-1. 确保数据库连接信息正确
-2. FTP 服务器需要可访问
-3. 上传文件仅支持图片格式
-4. 单文件最大 100MB
-5. `.env` 文件包含敏感信息，不要提交到版本控制
 
 ## 📄 许可证
 

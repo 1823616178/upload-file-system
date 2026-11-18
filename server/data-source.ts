@@ -1,7 +1,15 @@
 import 'reflect-metadata'
+import fs from 'fs'
+import path from 'path'
 import { DataSource } from 'typeorm'
 import { UploadHistory } from './entities/UploadHistory'
 import { User } from './entities/User'
+
+// 兼容 CLI 脚本（npm run typeorm:seed / migration:*）直接读取项目根目录 .env（不覆盖已注入的环境变量）
+const envFilePath = path.resolve(process.cwd(), '.env')
+if (fs.existsSync(envFilePath) && typeof process.loadEnvFile === 'function') {
+  process.loadEnvFile(envFilePath)
+}
 
 export const AppDataSource = new DataSource({
   type: 'mysql',
